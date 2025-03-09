@@ -39,7 +39,22 @@
     "experiments": {
       "tsconfigPaths": true
     },
-    "plugins": ["expo-router"],
-    "newArchEnabled": true
+    "plugins": [
+      "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ]
+    ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ee75bfbb-e500-477e-907a-28cc62aa3773"
+    }
   }
 }
