@@ -24,7 +24,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.pawmatching.paw"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -34,6 +35,11 @@
         "projectId": "ee75bfbb-e500-477e-907a-28cc62aa3773"
       }
     },
-    "owner": "idemiki"
+    "owner": "idemiki",
+    "experiments": {
+      "tsconfigPaths": true
+    },
+    "plugins": ["expo-router"],
+    "newArchEnabled": true
   }
 }
