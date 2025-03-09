@@ -22,7 +22,8 @@
     "react-native": "0.76.7",
     "react-native-reanimated": "^3.17.1",
     "react-native-safe-area-context": "^5.3.0",
-    "react-native-screens": "^4.9.1"
+    "react-native-screens": "^4.9.1",
+    "expo-build-properties": "~0.13.2"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
