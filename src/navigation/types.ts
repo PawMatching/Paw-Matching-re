@@ -29,6 +29,7 @@ export type AccountStackParamList = {
   AccountMain: undefined;
   EditProfile: undefined;
   EditDogProfile: { dogId: string };
+  RegisterDog: undefined;
 };
 
 // 認証スタックナビゲーションの型定義
