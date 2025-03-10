@@ -7,21 +7,27 @@
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
-        "resourceClass": "m-medium",
-        "googleServicesFile": "GOOGLE_SERVICES_INFO_PLIST"
+        "resourceClass": "m-medium"
+      },
+      "env": {
+        "GOOGLE_SERVICES_FILE": "GOOGLE_SERVICES_INFO_PLIST"
       }
     },
     "preview": {
       "distribution": "internal",
       "ios": {
-        "resourceClass": "m-medium",
-        "googleServicesFile": "GOOGLE_SERVICES_INFO_PLIST"
+        "resourceClass": "m-medium"
+      },
+      "env": {
+        "GOOGLE_SERVICES_FILE": "GOOGLE_SERVICES_INFO_PLIST"
       }
     },
     "production": {
       "ios": {
-        "resourceClass": "m-medium",
-        "googleServicesFile": "GOOGLE_SERVICES_INFO_PLIST"
+        "resourceClass": "m-medium"
+      },
+      "env": {
+        "GOOGLE_SERVICES_FILE": "GOOGLE_SERVICES_INFO_PLIST"
       }
     }
   },
