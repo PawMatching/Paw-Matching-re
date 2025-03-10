@@ -16,8 +16,13 @@
     "preview": {
       "distribution": "internal",
       "ios": {
-        "resourceClass": "m-medium"
+        "resourceClass": "m-medium",
+        "simulator": false
       },
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "preview",
       "env": {
         "GOOGLE_SERVICES_FILE": "GOOGLE_SERVICES_INFO_PLIST"
       }
@@ -32,6 +37,13 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {},
+    "preview": {
+      "ios": {
+        "appleId": "kinoko.miki@gmail.com",
+        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID",
+        "appleTeamId": "9LQ9ZNFQ9M"
+      }
+    }
   }
 }
