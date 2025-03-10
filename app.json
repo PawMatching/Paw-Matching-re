@@ -34,7 +34,7 @@
       "eas": {
         "projectId": "ee75bfbb-e500-477e-907a-28cc62aa3773"
       }
-        },
+    },
     "newArchEnabled": true,
     "owner": "idemiki",
     "experiments": {
@@ -51,9 +51,7 @@
         }
       ]
     ],
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/ee75bfbb-e500-477e-907a-28cc62aa3773"
     },
