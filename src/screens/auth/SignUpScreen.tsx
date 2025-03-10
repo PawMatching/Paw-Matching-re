@@ -10,33 +10,76 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { useAuthState } from "../../hooks/useAuthState";
 import { AuthScreenNavigationProp } from "../../navigation/types";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "../../config/firebase";
+import { FirebaseError } from "firebase/app";
 
-const SignUpScreen = () => {
+export default function SignUpScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [username, setUsername] = useState("");
   const navigation = useNavigation<AuthScreenNavigationProp>();
   const { signUp } = useAuthState();
 
   const handleSignUp = async () => {
+    // 入力値の検証
+    if (!email || !password || !confirmPassword || !username) {
+      Alert.alert("エラー", "すべての項目を入力してください");
+      return;
+    }
     if (password !== confirmPassword) {
-      Alert.alert("エラー", "パスワードが一致しません。");
+      Alert.alert("エラー", "パスワードが一致しません");
+      return;
+    }
+    if (password.length < 6) {
+      Alert.alert("エラー", "パスワードは6文字以上で入力してください");
       return;
     }
 
     try {
-      await signUp(email, password);
+      // useAuthStateのsignUp関数を使用してユーザーを作成
+      const user = await signUp(email, password);
+
+      if (user) {
+        // Firestoreにユーザー情報を保存
+        await setDoc(doc(db, "users", user.uid), {
+          email: email,
+          name: username,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          profileImage: "",
+          userID: user.uid,
+          isOwner: false,
+        });
+
+        Alert.alert("成功", "アカウントが作成されました");
+        navigation.navigate("Login");
+      }
     } catch (error) {
-      Alert.alert(
-        "エラー",
-        "新規登録に失敗しました。入力内容を確認してください。"
-      );
+      let errorMessage = "登録中にエラーが発生しました";
+
+      if ((error as FirebaseError).code === "auth/email-already-in-use") {
+        errorMessage = "このメールアドレスは既に使用されています";
+      } else if ((error as FirebaseError).code === "auth/invalid-email") {
+        errorMessage = "無効なメールアドレス形式です";
+      } else if ((error as FirebaseError).code === "auth/weak-password") {
+        errorMessage =
+          "パスワードが弱すぎます。より複雑なパスワードを設定してください";
+      }
+      Alert.alert("エラー", errorMessage);
     }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>新規登録</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="ユーザー名"
+        value={username}
+        onChangeText={setUsername}
+      />
       <TextInput
         style={styles.input}
         placeholder="メールアドレス"
@@ -72,7 +115,7 @@ const SignUpScreen = () => {
       </TouchableOpacity>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -114,5 +157,3 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
-
-export default SignUpScreen;
