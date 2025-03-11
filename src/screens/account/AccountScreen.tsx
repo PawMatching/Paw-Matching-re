@@ -1,5 +1,5 @@
 // src/screens/account/AccountScreen.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -9,7 +9,12 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  RouteProp,
+  useFocusEffect,
+} from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useAuthState } from "../../hooks/useAuthState";
 import {
@@ -38,10 +43,11 @@ const AccountScreen = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [dogData, setDogData] = useState<DogData | null>(null);
 
-  const fetchUserAndDogData = async () => {
+  const fetchUserAndDogData = useCallback(async () => {
     if (!user) return;
 
     try {
+      setLoading(true);
       // ユーザーデータの取得
       const userDocRef = doc(db, "users", user.uid);
       const userDocSnap = await getDoc(userDocRef);
@@ -62,6 +68,8 @@ const AccountScreen = () => {
             const dogData = dogSnapshot.docs[0].data() as DogData;
             setDogData(dogData);
           }
+        } else {
+          setDogData(null);
         }
       } else {
         Alert.alert("エラー", "ユーザー情報が見つかりませんでした。");
@@ -72,11 +80,14 @@ const AccountScreen = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchUserAndDogData();
   }, [user]);
+
+  // 画面がフォーカスされる度にデータを再取得
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserAndDogData();
+    }, [fetchUserAndDogData])
+  );
 
   // プロフィール更新の監視
   useEffect(() => {
