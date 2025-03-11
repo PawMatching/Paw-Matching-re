@@ -2,9 +2,8 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import AccountScreen from "../../screens/account/AccountScreen";
 import EditProfileScreen from "../../screens/account/EditProfileScreen";
-
-// 仮のコンポーネント（後で実装）
-const EditDogProfileScreen = () => null;
+import RegisterDogScreen from "../../screens/account/RegisterDogScreen";
+import EditDogProfileScreen from "../../screens/account/EditDogProfileScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -30,6 +29,13 @@ const AccountStackNavigator = () => {
         component={EditDogProfileScreen}
         options={{
           title: "犬のプロフィール編集",
+        }}
+      />
+      <Stack.Screen
+        name="RegisterDog"
+        component={RegisterDogScreen}
+        options={{
+          title: "犬のプロフィール登録",
         }}
       />
     </Stack.Navigator>

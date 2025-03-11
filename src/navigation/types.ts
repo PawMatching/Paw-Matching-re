@@ -37,7 +37,8 @@ export type AccountStackParamList = {
     shouldRefresh?: boolean;
   };
   EditProfile: undefined;
-  EditDogProfile: undefined;
+  EditDogProfile: { dogId: string };
+  RegisterDog: undefined;
 };
 
 // 認証スタックナビゲーションの型定義
