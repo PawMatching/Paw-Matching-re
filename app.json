@@ -40,15 +40,22 @@
     "experiments": {
       "tsconfigPaths": true
     },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "useFrameworks": "static"
-          }
-        }
+"plugins": [
+  "expo-router",
+  [
+    "expo-build-properties",
+    {
+      "ios": {
+        "useFrameworks": "static"
+      }
+    }
+  ],
+  [
+    "expo-image-picker",
+    {
+      "photosPermission": "アプリがあなたの写真にアクセスするために使用します。",
+      "cameraPermission": "アプリがカメラを使用するために必要です。"
+    }
       ]
     ],
     "runtimeVersion": "1.0.0",
