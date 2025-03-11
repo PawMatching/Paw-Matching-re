@@ -4,6 +4,7 @@ import { RootStackParamList } from "./types";
 import AuthStackNavigator from "./stacks/AuthStackNavigator";
 import TabNavigator from "./TabNavigator";
 import { useAuthState } from "../hooks/useAuthState";
+import { View, ActivityIndicator, StyleSheet } from "react-native";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -11,8 +12,11 @@ const RootNavigator: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuthState();
 
   if (isLoading) {
-    // TODO: ローディング画面のコンポーネントを実装する
-    return null;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF9500" />
+      </View>
+    );
   }
 
   return (
@@ -31,5 +35,14 @@ const RootNavigator: React.FC = () => {
     </Stack.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+  },
+});
 
 export default RootNavigator;
