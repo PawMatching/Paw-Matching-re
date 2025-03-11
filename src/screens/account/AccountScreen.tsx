@@ -8,7 +8,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useAuthState } from "../../hooks/useAuthState";
 import {
@@ -29,50 +29,63 @@ type AccountScreenNavigationProp =
 
 const AccountScreen = () => {
   const navigation = useNavigation<AccountScreenNavigationProp>();
+  const route = useRoute();
   const { signOut, user } = useAuthState();
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [dogData, setDogData] = useState<DogData | null>(null);
 
-  useEffect(() => {
-    const fetchUserAndDogData = async () => {
-      if (!user) return;
+  const fetchUserAndDogData = async () => {
+    if (!user) return;
 
-      try {
-        // ユーザーデータの取得
-        const userDocRef = doc(db, "users", user.uid);
-        const userDocSnap = await getDoc(userDocRef);
+    try {
+      // ユーザーデータの取得
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
 
-        if (userDocSnap.exists()) {
-          const userData = userDocSnap.data() as UserData;
-          setUserData(userData);
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data() as UserData;
+        setUserData(userData);
 
-          // ユーザーが犬を登録している場合（isOwner=true）
-          if (userData.isOwner) {
-            const dogsQuery = query(
-              collection(db, "dogs"),
-              where("userID", "==", user.uid)
-            );
-            const dogSnapshot = await getDocs(dogsQuery);
+        // ユーザーが犬を登録している場合（isOwner=true）
+        if (userData.isOwner) {
+          const dogsQuery = query(
+            collection(db, "dogs"),
+            where("userID", "==", user.uid)
+          );
+          const dogSnapshot = await getDocs(dogsQuery);
 
-            if (!dogSnapshot.empty) {
-              const dogData = dogSnapshot.docs[0].data() as DogData;
-              setDogData(dogData);
-            }
+          if (!dogSnapshot.empty) {
+            const dogData = dogSnapshot.docs[0].data() as DogData;
+            setDogData(dogData);
           }
-        } else {
-          Alert.alert("エラー", "ユーザー情報が見つかりませんでした。");
         }
-      } catch (error) {
-        console.error("データ取得エラー:", error);
-        Alert.alert("エラー", "データの取得に失敗しました。");
-      } finally {
-        setLoading(false);
+      } else {
+        Alert.alert("エラー", "ユーザー情報が見つかりませんでした。");
       }
-    };
+    } catch (error) {
+      console.error("データ取得エラー:", error);
+      Alert.alert("エラー", "データの取得に失敗しました。");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchUserAndDogData();
   }, [user]);
+
+  // プロフィール更新の監視
+  useEffect(() => {
+    if (route.params?.updatedUserData) {
+      setUserData((prevData) => ({
+        ...prevData,
+        ...route.params.updatedUserData,
+        // ISOString形式の日付文字列をDateオブジェクトに変換
+        updatedAt: new Date(route.params.updatedUserData.updatedAt),
+      }));
+    }
+  }, [route.params?.updatedUserData]);
 
   const handleEditUserProfile = () => {
     navigation.navigate("EditProfile");

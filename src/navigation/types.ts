@@ -26,10 +26,18 @@ export type ChatStackParamList = {
 };
 
 export type AccountStackParamList = {
-  AccountMain: undefined;
+  AccountMain: {
+    updatedUserData?: {
+      name: string;
+      comment: string;
+      profileImage: string | null;
+      email: string | null;
+      updatedAt: string;
+    };
+    shouldRefresh?: boolean;
+  };
   EditProfile: undefined;
-  EditDogProfile: { dogId: string };
-  RegisterDog: undefined;
+  EditDogProfile: undefined;
 };
 
 // 認証スタックナビゲーションの型定義
