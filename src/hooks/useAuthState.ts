@@ -15,7 +15,12 @@ const USER_STORAGE_KEY = "userAuth";
 const saveUser = async (user: User | null) => {
   try {
     if (user) {
-      await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+      const userData = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+      };
+      await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
     } else {
       await AsyncStorage.removeItem(USER_STORAGE_KEY);
     }
@@ -28,13 +33,11 @@ const saveUser = async (user: User | null) => {
 const loadUser = async () => {
   try {
     const userData = await AsyncStorage.getItem(USER_STORAGE_KEY);
-    if (userData) {
-      return JSON.parse(userData) as User;
-    }
+    return userData ? JSON.parse(userData) : null;
   } catch (error) {
     console.error("Failed to load user:", error);
+    return null;
   }
-  return null;
 };
 
 export const useAuthState = () => {
@@ -43,60 +46,81 @@ export const useAuthState = () => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // 初回マウント時に保存されたユーザー情報を読み込む
+    let unsubscribe: (() => void) | undefined;
+
     const initializeAuth = async () => {
-      const savedUser = await loadUser();
-      if (savedUser) {
-        setUser(savedUser);
-        setIsAuthenticated(true);
+      try {
+        // Firebase Authの状態変更を監視
+        unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+          if (firebaseUser) {
+            setUser(firebaseUser);
+            setIsAuthenticated(true);
+            await saveUser(firebaseUser);
+          } else {
+            // Firebase認証が切れている場合、ローカルストレージのデータを削除
+            await saveUser(null);
+            setUser(null);
+            setIsAuthenticated(false);
+          }
+          setIsLoading(false);
+        });
+      } catch (error) {
+        console.error("認証の初期化エラー:", error);
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     initializeAuth();
 
-    // Firebase Auth の状態変更を監視
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      setIsAuthenticated(!!user);
-      await saveUser(user);
-      setIsLoading(false);
-    });
-
-    return unsubscribe;
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
+      setIsLoading(true);
       const response = await signInWithEmailAndPassword(auth, email, password);
+      await saveUser(response.user);
       return response.user;
     } catch (error) {
       console.error("ログインに失敗しました:", error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string) => {
     try {
+      setIsLoading(true);
       const response = await createUserWithEmailAndPassword(
         auth,
         email,
         password
       );
+      await saveUser(response.user);
       return response.user;
     } catch (error) {
       console.error("新規登録に失敗しました:", error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const signOut = async () => {
     try {
+      setIsLoading(true);
       await firebaseSignOut(auth);
-      await AsyncStorage.removeItem(USER_STORAGE_KEY); // ログアウト時にストレージからも削除
+      await saveUser(null);
     } catch (error) {
       console.error("ログアウトに失敗しました:", error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 

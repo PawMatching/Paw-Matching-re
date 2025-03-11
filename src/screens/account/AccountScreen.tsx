@@ -8,7 +8,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useAuthState } from "../../hooks/useAuthState";
 import {
@@ -27,9 +27,11 @@ import { AccountStackParamList } from "../../navigation/types";
 type AccountScreenNavigationProp =
   NativeStackNavigationProp<AccountStackParamList>;
 
+type AccountScreenRouteProp = RouteProp<AccountStackParamList, "AccountMain">;
+
 const AccountScreen = () => {
   const navigation = useNavigation<AccountScreenNavigationProp>();
-  const route = useRoute();
+  const route = useRoute<AccountScreenRouteProp>();
   const { signOut, user } = useAuthState();
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -77,13 +79,18 @@ const AccountScreen = () => {
 
   // プロフィール更新の監視
   useEffect(() => {
-    if (route.params?.updatedUserData) {
-      setUserData((prevData) => ({
-        ...prevData,
-        ...route.params.updatedUserData,
-        // ISOString形式の日付文字列をDateオブジェクトに変換
-        updatedAt: new Date(route.params.updatedUserData.updatedAt),
-      }));
+    const updatedData = route.params?.updatedUserData;
+    if (updatedData) {
+      setUserData(
+        (prevData) =>
+          ({
+            ...prevData,
+            name: updatedData.name,
+            profileImage: updatedData.profileImage || "",
+            email: updatedData.email || "",
+            updatedAt: new Date(updatedData.updatedAt),
+          } as UserData)
+      );
     }
   }, [route.params?.updatedUserData]);
 
