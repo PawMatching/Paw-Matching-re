@@ -1,3 +1,4 @@
+// src/screens/account/RegisterDogScreen.tsx
 import React, { useState } from "react";
 import {
   View,
@@ -10,6 +11,8 @@ import {
   ActivityIndicator,
   Text,
   Pressable,
+  Platform,
+  Modal,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -18,10 +21,9 @@ import { getStorage } from "firebase/storage";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { AccountStackParamList } from "../../navigation/types";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuthState } from "../../hooks/useAuthState";
-import RNPickerSelect from "react-native-picker-select";
 
 const RegisterDogScreen = () => {
   const navigation =
@@ -35,8 +37,9 @@ const RegisterDogScreen = () => {
   const [likes, setLikes] = useState("");
   const [remarks, setRemarks] = useState("");
   const [image, setImage] = useState<string | null>(null);
+  const [isAgePickerVisible, setIsAgePickerVisible] = useState(false);
 
-  // 年齢の選択肢を生成（0〜30歳）
+  // 年齢の選択肢を生成（0〜20歳）
   const ageOptions = Array.from({ length: 21 }, (_, i) => ({
     label: `${i}`,
     value: i.toString(),
@@ -77,16 +80,42 @@ const RegisterDogScreen = () => {
     return true;
   };
 
-  const uploadImage = async (uri: string, userId: string) => {
-    const response = await fetch(uri);
-    const blob = await response.blob();
+  // uploadImage関数の修正
+  const uploadImage = async (uri: string, dogId: string) => {
+    try {
+      console.log("画像アップロード開始:", uri);
+      console.log("dogId:", dogId);
 
-    const storageRef = ref(storage, `dogs/${userId}/profile/dogImage`);
-    const uploadTask = await uploadBytes(storageRef, blob);
+      const response = await fetch(uri);
+      const blob = await response.blob();
 
-    return await getDownloadURL(uploadTask.ref);
+      // 正しいパスに戻す
+      const storageRef = ref(storage, `dogs/${dogId}/profile/dogImage`);
+      console.log("アップロード先パス:", `dogs/${dogId}/profile/dogImage`);
+
+      // アップロード処理
+      console.log("uploadBytes開始...");
+      const uploadTask = await uploadBytes(storageRef, blob);
+      console.log("uploadBytes完了:", uploadTask);
+
+      // URLの取得
+      console.log("getDownloadURL開始...");
+      const downloadURL = await getDownloadURL(uploadTask.ref);
+      console.log("getDownloadURL完了:", downloadURL);
+
+      return downloadURL;
+    } catch (error) {
+      console.error("画像アップロード処理エラー（詳細）:", error);
+      if (error instanceof Error) {
+        console.error("エラーメッセージ:", error.message);
+        console.error("エラー名:", error.name);
+        console.error("エラースタック:", error.stack);
+      }
+      throw error;
+    }
   };
 
+  // handleRegister関数の修正
   const handleRegister = async () => {
     if (!user) {
       Alert.alert("エラー", "ログインが必要です");
@@ -97,21 +126,13 @@ const RegisterDogScreen = () => {
 
     try {
       setIsLoading(true);
+      console.log("犬の登録処理を開始します");
 
-      let imageUrl = null;
-      if (image) {
-        try {
-          imageUrl = await uploadImage(image, user.uid);
-        } catch (uploadError) {
-          console.error("画像アップロードエラー:", uploadError);
-          Alert.alert(
-            "画像アップロードエラー",
-            "プロフィール画像のアップロードに失敗しました。後でもう一度お試しください。"
-          );
-        }
-      }
-
+      // まずFirestoreドキュメントを作成
       const dogDocRef = doc(db, "dogs", user.uid);
+      console.log("ドキュメントの作成準備完了:", user.uid);
+
+      // 最初はプロフィール画像なしで作成
       await setDoc(dogDocRef, {
         userID: user.uid,
         dogname: name,
@@ -119,10 +140,42 @@ const RegisterDogScreen = () => {
         sex: gender,
         likes: likes,
         notes: remarks,
-        profileImage: imageUrl,
+        profileImage: null, // まずnullに設定
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+      console.log("犬のドキュメントを作成しました");
+
+      // Firestoreドキュメント作成後に画像をアップロード
+      let imageUrl = null;
+      if (image) {
+        try {
+          console.log("画像アップロード処理を開始します");
+
+          // 少し待ってからアップロード（Firestoreの更新が反映されるまで待つ）
+          console.log("1秒待機中...");
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          console.log("待機完了");
+
+          imageUrl = await uploadImage(image, user.uid);
+          console.log("画像のアップロードに成功しました。URL:", imageUrl);
+
+          // 画像URLでドキュメントを更新
+          await updateDoc(dogDocRef, {
+            profileImage: imageUrl,
+            updatedAt: new Date(),
+          });
+          console.log("犬のドキュメントを画像URLで更新しました");
+        } catch (uploadError) {
+          console.error("画像アップロードエラー発生:", uploadError);
+          Alert.alert(
+            "画像アップロードエラー",
+            "プロフィール画像のアップロードに失敗しました。後でもう一度お試しください。"
+          );
+        }
+      } else {
+        console.log("画像が選択されていないため、アップロードはスキップします");
+      }
 
       // ユーザードキュメントも更新
       const userDocRef = doc(db, "users", user.uid);
@@ -133,19 +186,40 @@ const RegisterDogScreen = () => {
         },
         { merge: true }
       );
+      console.log("ユーザードキュメントを更新しました (isOwner: true)");
 
       Alert.alert("登録完了", "わんちゃんのプロフィールを登録しました", [
         {
           text: "OK",
           onPress: () => {
-            navigation.navigate("AccountMain", {
-              shouldRefresh: true,
-            });
+            const parent = navigation.getParent();
+            if (!parent) {
+              navigation.navigate("AccountMain", {
+                shouldRefresh: true,
+              });
+              return;
+            }
+
+            const parentId = parent.getId();
+            if (!parentId || !parentId.includes("Account")) {
+              parent.navigate("Account", {
+                screen: "AccountMain",
+                params: { shouldRefresh: true },
+              });
+            } else {
+              navigation.navigate("AccountMain", {
+                shouldRefresh: true,
+              });
+            }
           },
         },
       ]);
     } catch (error) {
-      console.error("登録エラー:", error);
+      console.error("登録エラー（詳細）:", error);
+      if (error instanceof Error) {
+        console.error("エラーメッセージ:", error.message);
+        console.error("エラー名:", error.name);
+      }
       Alert.alert(
         "エラー",
         "プロフィールの登録に失敗しました。もう一度お試しください。"
@@ -187,48 +261,61 @@ const RegisterDogScreen = () => {
         {/* 年齢選択 */}
         <Text style={styles.label}>年齢</Text>
         <View style={styles.rowContainer}>
-          <View style={styles.pickerContainer}>
-            <RNPickerSelect
-              value={age}
-              items={ageOptions}
-              onValueChange={(value) => setAge(value)}
-              style={{
-                inputIOS: {
-                  fontSize: 16,
-                  paddingVertical: 12,
-                  paddingHorizontal: 10,
-                  borderWidth: 1,
-                  borderColor: "#ccc",
-                  borderRadius: 4,
-                  color: "black",
-                  paddingRight: 30,
-                  backgroundColor: "white",
-                },
-                inputAndroid: {
-                  fontSize: 16,
-                  paddingVertical: 8,
-                  paddingHorizontal: 10,
-                  borderWidth: 1,
-                  borderColor: "#ccc",
-                  borderRadius: 4,
-                  color: "black",
-                  paddingRight: 30,
-                  backgroundColor: "white",
-                },
-                iconContainer: {
-                  top: 10,
-                  right: 12,
-                },
-              }}
-              useNativeAndroidPickerStyle={false}
-              placeholder={{ label: "選択してください", value: "" }}
-              Icon={() => (
-                <MaterialIcons name="arrow-drop-down" size={24} color="#999" />
-              )}
-            />
-          </View>
+          <TouchableOpacity
+            style={styles.pickerContainer}
+            onPress={() => setIsAgePickerVisible(true)}
+          >
+            <Text style={styles.pickerText}>
+              {age ? `${age}` : "選択してください"}
+            </Text>
+            <MaterialIcons name="arrow-drop-down" size={24} color="#999" />
+          </TouchableOpacity>
           <Text style={styles.unitText}>才</Text>
         </View>
+
+        <Modal
+          visible={isAgePickerVisible}
+          transparent={true}
+          animationType="slide"
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>年齢を選択</Text>
+                <TouchableOpacity
+                  onPress={() => setIsAgePickerVisible(false)}
+                  style={styles.closeButton}
+                >
+                  <Text style={styles.closeButtonText}>完了</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView>
+                {ageOptions.map((option) => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.optionItem,
+                      age === option.value && styles.selectedOption,
+                    ]}
+                    onPress={() => {
+                      setAge(option.value);
+                      setIsAgePickerVisible(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        age === option.value && styles.selectedOptionText,
+                      ]}
+                    >
+                      {option.label}才
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
 
         {/* 性別選択 */}
         <View style={styles.radioContainer}>
@@ -348,6 +435,63 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     width: 150,
+    height: 40,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 4,
+    backgroundColor: "white",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 10,
+  },
+  pickerText: {
+    fontSize: 16,
+    color: "#000",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "80%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  closeButton: {
+    padding: 5,
+  },
+  closeButtonText: {
+    color: "#007AFF",
+    fontSize: 16,
+  },
+  optionItem: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  selectedOption: {
+    backgroundColor: "#f0f0f0",
+  },
+  optionText: {
+    fontSize: 16,
+  },
+  selectedOptionText: {
+    color: "#007AFF",
   },
   unitText: {
     marginLeft: 10,
