@@ -3,9 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import AccountScreen from "../../screens/account/AccountScreen";
 import EditProfileScreen from "../../screens/account/EditProfileScreen";
 import RegisterDogScreen from "../../screens/account/RegisterDogScreen";
-
-// 仮のコンポーネント（後で実装）
-const EditDogProfileScreen = () => null;
+import EditDogProfileScreen from "../../screens/account/EditDogProfileScreen";
 
 const Stack = createNativeStackNavigator();
 
