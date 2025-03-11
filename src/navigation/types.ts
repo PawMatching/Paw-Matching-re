@@ -1,6 +1,7 @@
 // src/navigation/types.ts
 import { NavigatorScreenParams } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Dog } from "../types/dog";
 
 // 各スタックナビゲーションの型定義
 export type HomeStackParamList = {
@@ -12,7 +13,7 @@ export type HomeStackParamList = {
 
 export type SearchStackParamList = {
   SearchMain: undefined;
-  SearchResult: { query: string };
+  DogDetail: { dog: Dog };
 };
 
 export type MatchingStackParamList = {

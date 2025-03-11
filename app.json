@@ -11,9 +11,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["*/"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pawmatching.paw",
@@ -59,8 +57,18 @@
           "cameraPermission": "アプリがカメラを使用するために必要です。"
         }
       ],
-      "expo-secure-store"
-        ],
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location.",
+          "locationAlwaysPermission": "Allow $(PRODUCT_NAME) to use your location.",
+          "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false
+        }
+      ]
+    ],
     "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/ee75bfbb-e500-477e-907a-28cc62aa3773"
