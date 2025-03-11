@@ -1,0 +1,47 @@
+PAW-MATCHING-RE/
+├── .expo/
+├── android/
+├── assets/
+├── ios/
+├── node_modules/
+├── src/
+│   ├── config/
+│   │   └── firebase.ts
+│   ├── hooks/
+│   │   └── useAuthState.ts
+│   ├── navigation/
+│   │   ├── stacks/
+│   │   │   ├── AccountStackNavigator.tsx
+│   │   │   ├── AuthStackNavigator.tsx
+│   │   │   ├── ChatStackNavigator.tsx
+│   │   │   ├── HomeStackNavigator.tsx
+│   │   │   ├── MatchingStackNavigator.tsx
+│   │   │   ├── SearchStackNavigator.tsx
+│   │   │   ├── RootNavigator.tsx
+│   │   │   └── TabNavigator.tsx
+│   │   └── types.ts
+│   ├── screens/
+│   │   ├── account/
+│   │   │   ├── AccountScreen.tsx
+│   │   │   ├── EditDogProfileScreen.tsx
+│   │   │   ├── EditProfileScreen.tsx
+│   │   │   └── RegisterDogScreen.tsx
+│   │   ├── auth/
+│   │   │   ├── LoginScreen.tsx
+│   │   │   └── SignUpScreen.tsx
+│   │   └── home/
+│   │       └── HomeScreen.tsx
+├── types/
+│   ├── env.d.ts
+│   └── user.ts
+├── .env
+├── .gitignore
+├── app.json
+├── App.tsx
+├── babel.config.js
+├── eas.json
+├── GoogleService-Info.plist
+├── index.ts
+├── package-lock.json
+├── package.json
+└── tsconfig.json
