@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { View, Text, Button, StyleSheet, Switch } from "react-native";
+import { View, Text, Button, StyleSheet, Switch, Alert } from "react-native";
 import {
   doc,
   getDoc,
@@ -13,6 +13,8 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { auth, db } from "../../config/firebase";
 import { HomeStackParamList } from "../../navigation/types";
+import * as Location from "expo-location";
+import { getDatabase, ref, set } from "firebase/database";
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 
@@ -32,14 +34,46 @@ export default function HomeScreen() {
     if (!userDog) return;
 
     try {
+      // 位置情報の許可を確認
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "位置情報が必要です",
+          "お散歩モードを使用するには位置情報へのアクセスを許可してください。"
+        );
+        return;
+      }
+
+      // 現在の位置情報を取得
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
       const dogDocRef = doc(db, "dogs", userDog.id);
       await updateDoc(dogDocRef, {
         isWalking: !isWalking,
         lastWalkingStatusUpdate: new Date(),
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
       });
+
+      // Realtime Databaseにも位置情報を保存
+      const rtdb = getDatabase();
+      const dogLocationRef = ref(rtdb, `locations/dogs/${userDog.id}`);
+      await set(dogLocationRef, {
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+        lastUpdated: new Date().toISOString(),
+        isWalking: !isWalking,
+      });
+
       setIsWalking(!isWalking);
     } catch (error) {
       console.error("お散歩状態の更新エラー:", error);
+      Alert.alert(
+        "エラー",
+        "お散歩状態の更新中にエラーが発生しました。もう一度お試しください。"
+      );
     }
   };
 

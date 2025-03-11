@@ -1,10 +1,10 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SearchStackParamList } from "../types";
+import SearchDogsScreen from "../../screens/SearchDogsScreen";
 
 // 仮のコンポーネント（後で実装）
-const SearchMainScreen = () => null;
-const SearchResultScreen = () => null;
+const DogDetailScreen = () => null; // 後で実装
 
 const Stack = createNativeStackNavigator<SearchStackParamList>();
 
@@ -13,16 +13,16 @@ const SearchStackNavigator = () => {
     <Stack.Navigator>
       <Stack.Screen
         name="SearchMain"
-        component={SearchMainScreen}
+        component={SearchDogsScreen}
         options={{
-          title: "検索",
+          title: "近くのわんちゃん",
         }}
       />
       <Stack.Screen
-        name="SearchResult"
-        component={SearchResultScreen}
+        name="DogDetail"
+        component={DogDetailScreen}
         options={{
-          title: "検索結果",
+          title: "わんちゃんの詳細",
         }}
       />
     </Stack.Navigator>
