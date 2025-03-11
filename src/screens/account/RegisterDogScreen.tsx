@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { auth, db } from "../../config/firebase";
+import { db } from "../../config/firebase";
 import { getStorage } from "firebase/storage";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -37,7 +37,7 @@ const RegisterDogScreen = () => {
   const [image, setImage] = useState<string | null>(null);
 
   // 年齢の選択肢を生成（0〜30歳）
-  const ageOptions = Array.from({ length: 31 }, (_, i) => ({
+  const ageOptions = Array.from({ length: 21 }, (_, i) => ({
     label: `${i}`,
     value: i.toString(),
   }));
@@ -193,15 +193,38 @@ const RegisterDogScreen = () => {
               items={ageOptions}
               onValueChange={(value) => setAge(value)}
               style={{
-                inputIOS: styles.picker,
-                inputAndroid: styles.picker,
+                inputIOS: {
+                  fontSize: 16,
+                  paddingVertical: 12,
+                  paddingHorizontal: 10,
+                  borderWidth: 1,
+                  borderColor: "#ccc",
+                  borderRadius: 4,
+                  color: "black",
+                  paddingRight: 30,
+                  backgroundColor: "white",
+                },
+                inputAndroid: {
+                  fontSize: 16,
+                  paddingVertical: 8,
+                  paddingHorizontal: 10,
+                  borderWidth: 1,
+                  borderColor: "#ccc",
+                  borderRadius: 4,
+                  color: "black",
+                  paddingRight: 30,
+                  backgroundColor: "white",
+                },
                 iconContainer: {
                   top: 10,
                   right: 12,
                 },
               }}
               useNativeAndroidPickerStyle={false}
-              placeholder={{ label: "選択", value: null }}
+              placeholder={{ label: "選択してください", value: "" }}
+              Icon={() => (
+                <MaterialIcons name="arrow-drop-down" size={24} color="#999" />
+              )}
             />
           </View>
           <Text style={styles.unitText}>才</Text>
@@ -324,20 +347,12 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   pickerContainer: {
-    width: 120,
-  },
-  picker: {
-    fontSize: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 4,
-    color: "black",
-    paddingRight: 30,
+    width: 150,
   },
   unitText: {
     marginLeft: 10,
+    fontSize: 16,
+    color: "#333",
   },
   radioContainer: {
     flexDirection: "row",
