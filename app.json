@@ -11,7 +11,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pawmatching.paw",
@@ -40,23 +42,24 @@
     "experiments": {
       "tsconfigPaths": true
     },
-"plugins": [
-  "expo-router",
-  [
-    "expo-build-properties",
-    {
-      "ios": {
-        "useFrameworks": "static"
-      }
-    }
-  ],
-  [
-    "expo-image-picker",
-    {
-      "photosPermission": "アプリがあなたの写真にアクセスするために使用します。",
-      "cameraPermission": "アプリがカメラを使用するために必要です。"
-    }
-      ]
+    "plugins": [
+      "expo-router",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "アプリがあなたの写真にアクセスするために使用します。",
+          "cameraPermission": "アプリがカメラを使用するために必要です。"
+        }
+      ],
+      "expo-secure-store"
     ],
     "runtimeVersion": "1.0.0",
     "updates": {
