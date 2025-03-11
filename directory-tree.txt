@@ -31,7 +31,11 @@ PAW-MATCHING-RE/
 │   │   │   └── SignUpScreen.tsx
 │   │   └── home/
 │   │       └── HomeScreen.tsx
+│   │   └── search/
+│   │       └── SearchMainScreen.tsx
+│   ├── SearchDogsScreen.tsx
 ├── types/
+│   ├── dog.ts
 │   ├── env.d.ts
 │   └── user.ts
 ├── .env
