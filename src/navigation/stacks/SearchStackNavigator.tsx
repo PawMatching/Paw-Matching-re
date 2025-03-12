@@ -1,10 +1,9 @@
+// src/navigation/stacks/SearchStackNavigator.tsx
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SearchStackParamList } from "../types";
-import SearchDogsScreen from "../../screens/SearchDogsScreen";
-
-// 仮のコンポーネント（後で実装）
-const DogDetailScreen = () => null; // 後で実装
+import SearchDogsScreen from "../../screens/search/SearchDogsScreen";
+import DogDetailScreen from "../../screens/search/DogDetailScreen";
 
 const Stack = createNativeStackNavigator<SearchStackParamList>();
 
