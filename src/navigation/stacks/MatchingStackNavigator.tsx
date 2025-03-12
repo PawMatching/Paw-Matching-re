@@ -1,10 +1,10 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { MatchingStackParamList } from "../types";
+import MatchingRequestsScreen from "../../screens/matching/MatchingRequestsScreen";
 
 // 仮のコンポーネント（後で実装）
 const MatchingMainScreen = () => null;
-const MatchingRequestsScreen = () => null;
 const MatchingSentScreen = () => null;
 
 const Stack = createNativeStackNavigator<MatchingStackParamList>();
@@ -23,7 +23,7 @@ const MatchingStackNavigator = () => {
         name="MatchingRequests"
         component={MatchingRequestsScreen}
         options={{
-          title: "受信したリクエスト",
+          title: "モフモフ申請",
         }}
       />
       <Stack.Screen
