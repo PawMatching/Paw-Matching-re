@@ -110,6 +110,7 @@ const DogDetailScreen = () => {
         applyID: `apply_${Date.now()}`,
         userID: currentUser.uid,
         dogID: dog.id,
+        dogOwnerID: dog.userID,
         status: "pending",
         message: `${currentUser.displayName || "ゲスト"}さんが${
           dog.name
@@ -121,6 +122,13 @@ const DogDetailScreen = () => {
           longitude: dog.longitude,
         },
       };
+      // デバッグ用
+      console.log("送信する申請情報:", {
+        userID: currentUser.uid,
+        dogID: dog.id,
+        dogOwnerID: dog.userID,
+        dog: dog
+      });
 
       const appliesCollectionRef = collection(db, "applies");
       await addDoc(appliesCollectionRef, requestData);

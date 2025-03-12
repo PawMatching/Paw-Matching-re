@@ -6,17 +6,34 @@ import AuthStackNavigator from "./stacks/AuthStackNavigator";
 import TabNavigator from "./TabNavigator";
 import { useAuthState } from "../hooks/useAuthState";
 import { View, ActivityIndicator, StyleSheet, Text } from "react-native";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../config/firebase";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-const RootNavigator: React.FC = () => {
+type RootNavigatorProps = {
+  initialAuthenticated?: boolean;
+};
+
+const RootNavigator: React.FC<RootNavigatorProps> = ({ initialAuthenticated }) => {
   const { isAuthenticated, isLoading, tryRestoreAuth } = useAuthState();
   const [restoringAuth, setRestoringAuth] = useState(true);
+  const [userAuthenticated, setUserAuthenticated] = useState(initialAuthenticated || false);
 
+  // Firebase認証状態の変更を監視
   useEffect(() => {
-     const restoreAuth = async () => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUserAuthenticated(!!user);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // 保存された認証情報からの復元を試みる
+  useEffect(() => {
+    const restoreAuth = async () => {
       try {
-        // 認証の復元を試みる新しい関数を呼び出す
+        // 認証の復元を試みる
         await tryRestoreAuth();
       } finally {
         setRestoringAuth(false);
@@ -24,7 +41,12 @@ const RootNavigator: React.FC = () => {
     };
     
     restoreAuth();
-  }, []);
+  }, [tryRestoreAuth]);
+
+  // useAuthStateからの認証状態が変更された場合も更新
+  useEffect(() => {
+    setUserAuthenticated(isAuthenticated);
+  }, [isAuthenticated]);
 
   if (isLoading || restoringAuth) {
     return (
@@ -37,12 +59,12 @@ const RootNavigator: React.FC = () => {
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {!isAuthenticated ? (
+      {!userAuthenticated ? (
         <Stack.Screen
           name="Auth"
           component={AuthStackNavigator}
           options={{
-            animationTypeForReplace: !isAuthenticated ? "pop" : "push",
+            animationTypeForReplace: !userAuthenticated ? "pop" : "push",
           }}
         />
       ) : (

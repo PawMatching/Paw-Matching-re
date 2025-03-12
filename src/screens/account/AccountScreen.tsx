@@ -129,6 +129,11 @@ const AccountScreen = () => {
           text: "ログアウト",
           onPress: async () => {
             try {
+              // ログアウト前にユーザーデータをクリア
+              setUserData(null);
+              setDogData(null);
+
+              // ログアウト実行
               await signOut();
             } catch (error) {
               console.error("ログアウトエラー:", error);
