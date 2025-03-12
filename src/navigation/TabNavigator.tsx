@@ -1,3 +1,4 @@
+// src/navigation/TabNavigator.tsx
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { RootTabParamList } from "./types";

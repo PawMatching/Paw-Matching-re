@@ -1,9 +1,10 @@
+// src/navigation/stacks/HomeStackNavigator.tsx
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { HomeStackParamList } from "../types";
 import HomeScreen from "../../screens/home/HomeScreen";
 import RegisterDogScreen from "../../screens/account/RegisterDogScreen";
-import SearchDogsScreen from "../../screens/SearchDogsScreen";
+import SearchDogsScreen from "../../screens/search/SearchDogsScreen";
 
 // 仮のコンポーネント（後で実装）
 const StartWalkScreen = () => null;

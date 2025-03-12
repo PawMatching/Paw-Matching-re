@@ -1,3 +1,4 @@
+// src/screens/search/SearchDogsScreen.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -26,7 +27,7 @@ import {
   doc,
   getDoc,
 } from "firebase/firestore";
-import { Dog } from "../types/dog";
+import { Dog } from "../../types/dog";
 
 // 2点間の距離を計算する関数（ハーバーサイン公式）
 const calculateDistance = (
@@ -66,7 +67,7 @@ const SearchDogsScreen = ({
   const auth = getAuth();
   const currentUser = auth.currentUser;
 
-  const searchRadius = 10; // 検索半径を10kmに拡大
+  const searchRadius = 5; // 検索半径を10kmに拡大
 
   const isFocused = useIsFocused();
 
