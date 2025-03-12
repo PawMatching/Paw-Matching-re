@@ -36,6 +36,7 @@ PAW-MATCHING-RE/
 │   │        ├── SearchDogsScreen.tsx
 │   │        └── SearchMainScreen.tsx
 ├── types/
+│   ├── dog.ts
 │   ├── env.d.ts
 │   └── user.ts
 ├── .env
