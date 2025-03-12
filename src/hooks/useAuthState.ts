@@ -1,3 +1,4 @@
+// src/hooks/useAuthState.ts
 import { useState, useEffect } from "react";
 import {
   signInWithEmailAndPassword,
@@ -134,9 +135,11 @@ export const useAuthState = () => {
   const signOut = async () => {
     try {
       setIsLoading(true);
-      await firebaseSignOut(auth);
-      // ログアウト時に認証情報を削除
+      // ログアウト前に全てのリスナーをクリーンアップするために、
+      // まず認証情報を削除
       await saveCredentials(null, null);
+      // その後Firebaseからログアウト
+      await firebaseSignOut(auth);
     } catch (error) {
       console.error("ログアウトに失敗しました:", error);
       throw error;

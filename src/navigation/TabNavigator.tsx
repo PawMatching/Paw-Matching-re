@@ -1,4 +1,4 @@
-// src/navigation/TabNavigator.tsx の修正
+// src/navigation/TabNavigator.tsx
 import React, { useEffect, useState } from "react";
 import { View, Text } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -27,60 +27,77 @@ const TabNavigator = () => {
   const currentUser = auth.currentUser;
 
   useEffect(() => {
-    if (!currentUser) return;
+    // ユーザーがログアウトした場合はカウントをリセット
+    if (!currentUser) {
+      setPendingRequestsCount(0);
+      return;
+    }
 
-    const db = getFirestore();
+    const unsubscribes: (() => void)[] = [];
     
-    // まず自分の犬のIDを取得する関数
-    const fetchMyDogIds = async () => {
-      const dogsRef = collection(db, "dogs");
-      const dogsQuery = query(dogsRef, where("userID", "==", currentUser.uid));
-      const dogsSnapshot = await getDocs(dogsQuery);
-      return dogsSnapshot.docs.map(doc => doc.id);
-    };
-    
-    // 自分の犬のIDを取得して、それに対する申請を監視
-    fetchMyDogIds().then(dogIds => {
-      if (dogIds.length === 0) return;
-      
-      // Firestoreの制限（in句に最大10個まで）のため、分割処理
-      const batchSize = 10;
-      const unsubscribes: (() => void)[] = [];
-      
-      for (let i = 0; i < dogIds.length; i += batchSize) {
-        const batch = dogIds.slice(i, i + batchSize);
-        
-        // 自分の犬に対する未処理の申請を監視
-        const appliesRef = collection(db, "applies");
-        const q = query(
-          appliesRef,
-          where("dogOwnerID", "==", currentUser.uid),
-          where("status", "==", "pending")
-        );
-        
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-          // 各バッチでのカウント
-          const batchCount = snapshot.docs.length;
-          
-          // 全体のカウントを更新（注意：複数のリスナーが動作するため、合計値は別途計算する必要がある）
-          setPendingRequestsCount(prevCount => {
-            // この実装は簡易的なものです。実際には各バッチのカウントを状態として保持するなど
-            // より堅牢な実装が必要になる場合があります。
-            return batchCount;
-          });
-        });
-        
-        unsubscribes.push(unsubscribe);
-      }
-      
-      // クリーンアップ時に全てのリスナーを解除
-      return () => {
-        unsubscribes.forEach(unsubscribe => unsubscribe());
+    // 認証トークンが反映されるまで少し待つ
+    const timer = setTimeout(() => {
+      const db = getFirestore();
+
+      // まず自分の犬のIDを取得する関数
+      const fetchMyDogIds = async () => {
+        try {
+          const dogsRef = collection(db, "dogs");
+          const dogsQuery = query(dogsRef, where("userID", "==", currentUser.uid));
+          const dogsSnapshot = await getDocs(dogsQuery);
+          return dogsSnapshot.docs.map(doc => doc.id);
+        } catch (error) {
+          console.error("Error fetching dog IDs:", error);
+          return [];
+        }
       };
-    }).catch(error => {
-      console.error("Error fetching dog IDs:", error);
-    });
+      
+      // 自分の犬のIDを取得して、それに対する申請を監視
+      fetchMyDogIds().then(dogIds => {
+        if (dogIds.length === 0) return;
+        
+        // Firestoreの制限（in句に最大10個まで）のため、分割処理
+        const batchSize = 10;
+        
+        for (let i = 0; i < dogIds.length; i += batchSize) {
+          const batch = dogIds.slice(i, i + batchSize);
+          
+          // 自分の犬に対する未処理の申請を監視
+          const appliesRef = collection(db, "applies");
+          const q = query(
+            appliesRef,
+            where("dogID", "in", batch),
+            where("status", "==", "pending")
+          );
+          
+          const unsubscribe = onSnapshot(q, (snapshot) => {
+            // 各バッチでのカウント
+            const batchCount = snapshot.docs.length;
+            
+            // 全体のカウントを更新
+            setPendingRequestsCount(batchCount);
+          }, (error) => {
+            console.error("Error in snapshot listener:", error);
+          });
+          
+          unsubscribes.push(unsubscribe);
+        }
+      }).catch(error => {
+        console.error("Error setting up listeners:", error);
+      });
+    }, 2500); // 2.5秒待つ
     
+    // クリーンアップ関数を適切に返す
+    return () => {
+      clearTimeout(timer); // タイマーをクリア
+      
+      // すべてのリスナーを解除するコード
+      unsubscribes.forEach(unsub => {
+        if (typeof unsub === 'function') {
+          unsub();
+        }
+      });
+    };
   }, [currentUser]);
 
   return (
