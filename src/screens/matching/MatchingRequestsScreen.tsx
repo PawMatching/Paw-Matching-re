@@ -35,6 +35,7 @@ type PettingRequest = {
   applyID: string;
   userID: string; //申請者のID
   dogID: string; //犬のID
+  dogname: string;
   dogOwnerID: string; //飼い主のID
   status: "pending" | "accepted" | "rejected";
   message: string;
@@ -214,7 +215,7 @@ const MatchingRequestsScreen = () => {
           dogOwnerID: currentUser?.uid,
           pettingUserID: request.userID,
           dogID: request.dogID,
-          dogName: request.dog.name,
+          dogName: request.dog.dogname || "不明な犬",
           createdAt: new Date(),
           lastMessage: null,
           lastMessageAt: null,

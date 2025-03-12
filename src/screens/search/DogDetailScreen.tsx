@@ -113,7 +113,7 @@ const DogDetailScreen = () => {
         dogOwnerID: dog.userID,
         status: "pending",
         message: `${currentUser.displayName || "ゲスト"}さんが${
-          dog.name
+          dog.dogname
         }ちゃんをモフモフしたいと思っています！`,
         appliedAt: serverTimestamp(),
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
@@ -167,7 +167,7 @@ const DogDetailScreen = () => {
 
       <View style={styles.infoContainer}>
         <View style={styles.headerRow}>
-          <Text style={styles.dogName}>{dog.name}</Text>
+          <Text style={styles.dogName}>{dog.dogname}</Text>
           <View style={styles.distanceBadge}>
             <Ionicons name="location" size={16} color="white" />
             <Text style={styles.distanceText}>{dog.distance}km</Text>

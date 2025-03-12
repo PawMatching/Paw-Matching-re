@@ -1,7 +1,7 @@
 // src/types/dog.ts
 export interface Dog {
   id: string;
-  name: string;
+  dogname: string;
   sex: "male" | "female";
   profileImage: string;
   age: number;
