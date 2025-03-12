@@ -17,12 +17,13 @@ import {
   collection,
   query,
   where,
-  getDocs,
+  onSnapshot,
   doc,
   getDoc,
   updateDoc,
   deleteDoc,
   orderBy,
+  runTransaction,
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -37,7 +38,9 @@ type PettingRequest = {
   dogOwnerID: string; //飼い主のID
   status: "pending" | "accepted" | "rejected";
   message: string;
-  appliedAt: any;
+  appliedAt: {
+    toDate: () => Date;
+  };
   expiresAt: Date;
   location: {
     latitude: number;
@@ -67,6 +70,12 @@ const MatchingRequestsScreen = () => {
     try {
       const db = getFirestore();
       const appliesRef = collection(db, "applies");
+      // デバッグ用
+      console.log("Query params:", {
+        dogOwnerID: currentUser.uid,
+        status: "pending",
+      });
+
       const q = query(
         appliesRef,
         where("dogOwnerID", "==", currentUser.uid),
@@ -74,47 +83,63 @@ const MatchingRequestsScreen = () => {
         orderBy("appliedAt", "desc")
       );
 
-      const querySnapshot = await getDocs(q);
-      const requestsData: RequestWithUserAndDog[] = [];
+      const unsubscribe = onSnapshot(
+        q,
+        async (querySnapshot) => {
+          // デバッグ用
+          console.log("Query snapshot size:", querySnapshot.size);
+          console.log(
+            "Raw data:",
+            querySnapshot.docs.map((doc) => doc.data())
+          );
+          const requestsData: RequestWithUserAndDog[] = [];
 
-      for (const docSnapshot of querySnapshot.docs) {
-        const requestData = {
-          id: docSnapshot.id,
-          ...docSnapshot.data(),
-        } as PettingRequest;
+          for (const docSnapshot of querySnapshot.docs) {
+            const requestData = {
+              id: docSnapshot.id,
+              ...docSnapshot.data(),
+            } as PettingRequest;
 
-        // 自分の犬に対する申請のみを取得
-        const dogDocRef = doc(db, "dogs", requestData.dogID);
-        const dogDocSnapshot = await getDoc(dogDocRef);
-        if (
-          !dogDocSnapshot.exists() ||
-          dogDocSnapshot.data().userID !== currentUser.uid
-        )
-          continue;
+            // 自分の犬に対する申請のみを取得
+            const dogDocRef = doc(db, "dogs", requestData.dogID);
+            const dogDocSnapshot = await getDoc(dogDocRef);
+            if (
+              !dogDocSnapshot.exists() ||
+              dogDocSnapshot.data().userID !== currentUser.uid
+            )
+              continue;
 
-        // 申請者の情報を取得
-        const userDocRef = doc(db, "users", requestData.userID);
-        const userDocSnapshot = await getDoc(userDocRef);
-        if (!userDocSnapshot.exists()) continue;
+            // 申請者の情報を取得
+            const userDocRef = doc(db, "users", requestData.userID);
+            const userDocSnapshot = await getDoc(userDocRef);
+            if (!userDocSnapshot.exists()) continue;
 
-        const dogData = dogDocSnapshot.data();
-        const userData = userDocSnapshot.data();
+            const dogData = dogDocSnapshot.data();
+            const userData = userDocSnapshot.data();
 
-        requestsData.push({
-          ...requestData,
-          requester: userData as UserData,
-          dog: {
-            id: requestData.dogID,
-            ...dogData,
-          } as Dog,
-        });
-      }
+            requestsData.push({
+              ...requestData,
+              requester: userData as UserData,
+              dog: {
+                id: requestData.dogID,
+                ...dogData,
+              } as Dog,
+            });
+          }
 
-      setRequests(requestsData);
+          setRequests(requestsData);
+        },
+        (error) => {
+          console.error("Error fetching requests:", error);
+          Alert.alert("エラー", "申請の取得中にエラーが発生しました。");
+          setIsLoading(false);
+        }
+      );
+      // クリーンアップ関数を返す
+      return () => unsubscribe();
     } catch (error) {
       console.error("Error fetching requests:", error);
       Alert.alert("エラー", "申請の取得中にエラーが発生しました。");
-    } finally {
       setIsLoading(false);
     }
   };
@@ -124,12 +149,26 @@ const MatchingRequestsScreen = () => {
       const db = getFirestore();
       const requestRef = doc(db, "applies", request.id);
 
-      await updateDoc(requestRef, {
-        status: "accepted",
-        updatedAt: new Date(),
-      });
+      // トランザクションで処理を行う
+      await runTransaction(db, async (transaction) => {
+        // 申請のステータスを更新
+        transaction.update(requestRef, {
+          status: "accepted",
+          updatedAt: new Date(),
+        });
 
-      // チャットルームの作成などの追加処理をここに実装
+        // チャットルームを作成
+        const chatRef = doc(collection(db, "chats"));
+        transaction.set(chatRef, {
+          dogOwnerID: currentUser?.uid,
+          pettingUserID: request.userID,
+          dogID: request.dogID,
+          dogName: request.dog.name,
+          createdAt: new Date(),
+          lastMessage: null,
+          lastMessageAt: null,
+        });
+      });
 
       Alert.alert(
         "承認しました",
@@ -138,7 +177,10 @@ const MatchingRequestsScreen = () => {
       );
     } catch (error) {
       console.error("Error accepting request:", error);
-      Alert.alert("エラー", "申請の承認中にエラーが発生しました。");
+      Alert.alert(
+        "エラー",
+        "申請の承認中にエラーが発生しました。もう一度お試しください。"
+      );
     }
   };
 
@@ -157,7 +199,10 @@ const MatchingRequestsScreen = () => {
       ]);
     } catch (error) {
       console.error("Error rejecting request:", error);
-      Alert.alert("エラー", "申請の拒否中にエラーが発生しました。");
+      Alert.alert(
+        "エラー",
+        "申請の拒否中にエラーが発生しました。もう一度お試しください。"
+      );
     }
   };
 

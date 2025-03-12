@@ -1,3 +1,4 @@
+// src/screens/matching/MatchingSentScreen.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -34,50 +35,86 @@ type SentRequest = {
   dogImage: string | null;
   status: "pending" | "accepted" | "rejected";
   createdAt: Date;
+  message: string;
 };
 
 const MatchingSentScreen = () => {
   const [sentRequests, setSentRequests] = useState<SentRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const auth = getAuth();
   const currentUser = auth.currentUser;
 
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      setError("ユーザー情報が取得できません。");
+      setLoading(false);
+      return;
+    }
 
     const db = getFirestore();
     const appliesRef = collection(db, "applies");
     const q = query(
       appliesRef,
       where("userID", "==", currentUser.uid),
-      orderBy("createdAt", "desc")
+      orderBy("appliedAt", "desc")
     );
 
     const unsubscribe = onSnapshot(
       q,
       async (snapshot) => {
-        const requests = await Promise.all(
-          snapshot.docs.map(async (docSnapshot) => {
-            const data = docSnapshot.data() as DocumentData;
-            // 犬の情報を取得
-            const dogDoc = await getDoc(doc(db, "dogs", data.dogID));
-            const dogData = dogDoc.data() as DogData;
+        try {
+          const requests = await Promise.all(
+            snapshot.docs.map(async (docSnapshot) => {
+              try {
+                // デバッグ用
+                console.log("Sent requests query size:", snapshot.size);
+                console.log(
+                  "Sent requests raw data:",
+                  snapshot.docs.map((doc) => doc.data())
+                );
+                const data = docSnapshot.data() as DocumentData;
+                // 犬の情報を取得
+                const dogDoc = await getDoc(doc(db, "dogs", data.dogID));
 
-            return {
-              id: docSnapshot.id,
-              dogID: data.dogID,
-              dogName: dogData?.name || "不明な犬",
-              dogImage: dogData?.images?.[0] || null,
-              status: data.status,
-              createdAt: data.createdAt.toDate(),
-            };
-          })
-        );
-        setSentRequests(requests);
-        setLoading(false);
+                if (!dogDoc.exists()) {
+                  console.warn(`Dog document not found for ID: ${data.dogID}`);
+                  return null;
+                }
+
+                const dogData = dogDoc.data() as DogData;
+
+                return {
+                  id: docSnapshot.id,
+                  dogID: data.dogID,
+                  dogName: dogData?.name || "不明な犬",
+                  dogImage: dogData?.images?.[0] || null,
+                  status: data.status,
+                  message: data.message || "",
+                  createdAt: data.createdAt?.toDate() || new Date(),
+                };
+              } catch (err) {
+                console.error("Error processing document:", err);
+                return null;
+              }
+            })
+          );
+
+          // nullを除外して有効なリクエストのみを設定
+          setSentRequests(
+            requests.filter((req): req is SentRequest => req !== null)
+          );
+          setError(null);
+        } catch (err) {
+          console.error("Error processing snapshot:", err);
+          setError("データの取得中にエラーが発生しました。");
+        } finally {
+          setLoading(false);
+        }
       },
       (error) => {
-        console.error("Error fetching sent requests:", error);
+        console.error("Error in snapshot listener:", error);
+        setError("リアルタイム更新中にエラーが発生しました。");
         setLoading(false);
       }
     );
@@ -90,6 +127,15 @@ const MatchingSentScreen = () => {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#4dabf7" />
         <Text style={styles.loadingText}>読み込み中...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Ionicons name="alert-circle-outline" size={64} color="#ff6b6b" />
+        <Text style={styles.errorText}>{error}</Text>
       </View>
     );
   }
@@ -216,6 +262,19 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 12,
     color: "#adb5bd",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#ff6b6b",
+    textAlign: "center",
+    paddingHorizontal: 32,
   },
 });
 

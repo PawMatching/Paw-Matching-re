@@ -21,7 +21,7 @@ import { getStorage } from "firebase/storage";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { AccountStackParamList } from "../../navigation/types";
-import { doc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc, collection, addDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuthState } from "../../hooks/useAuthState";
 
@@ -129,11 +129,9 @@ const RegisterDogScreen = () => {
       console.log("犬の登録処理を開始します");
 
       // まずFirestoreドキュメントを作成
-      const dogDocRef = doc(db, "dogs", user.uid);
-      console.log("ドキュメントの作成準備完了:", user.uid);
-
-      // 最初はプロフィール画像なしで作成
-      await setDoc(dogDocRef, {
+      // 修正
+      const dogCollectionRef = collection(db, "dogs");
+      const dogDocRef = await addDoc(dogCollectionRef, {
         userID: user.uid,
         dogname: name,
         age: parseInt(age),
@@ -144,7 +142,7 @@ const RegisterDogScreen = () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      console.log("犬のドキュメントを作成しました");
+      console.log("ドキュメントの作成準備完了:", user.uid);
 
       // Firestoreドキュメント作成後に画像をアップロード
       let imageUrl = null;
