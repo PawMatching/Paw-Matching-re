@@ -34,34 +34,29 @@ const TabNavigator = () => {
     }
 
     const unsubscribes: (() => void)[] = [];
-    
-    // 認証トークンが反映されるまで少し待つ
-    const timer = setTimeout(() => {
-      const db = getFirestore();
 
-      // まず自分の犬のIDを取得する関数
-      const fetchMyDogIds = async () => {
-        try {
-          const dogsRef = collection(db, "dogs");
-          const dogsQuery = query(dogsRef, where("userID", "==", currentUser.uid));
-          const dogsSnapshot = await getDocs(dogsQuery);
-          return dogsSnapshot.docs.map(doc => doc.id);
-        } catch (error) {
-          console.error("Error fetching dog IDs:", error);
-          return [];
-        }
-      };
-      
-      // 自分の犬のIDを取得して、それに対する申請を監視
-      fetchMyDogIds().then(dogIds => {
+    // 認証トークンが反映されるまでの待ち時間を延長
+    const timer = setTimeout(async () => {
+      try {
+        const db = getFirestore();
+
+        // まず自分の犬のIDを取得する
+        const dogsRef = collection(db, "dogs");
+        const dogsQuery = query(
+          dogsRef,
+          where("userID", "==", currentUser.uid)
+        );
+        const dogsSnapshot = await getDocs(dogsQuery);
+        const dogIds = dogsSnapshot.docs.map((doc) => doc.id);
+
         if (dogIds.length === 0) return;
-        
+
         // Firestoreの制限（in句に最大10個まで）のため、分割処理
         const batchSize = 10;
-        
+
         for (let i = 0; i < dogIds.length; i += batchSize) {
           const batch = dogIds.slice(i, i + batchSize);
-          
+
           // 自分の犬に対する未処理の申請を監視
           const appliesRef = collection(db, "applies");
           const q = query(
@@ -69,31 +64,41 @@ const TabNavigator = () => {
             where("dogID", "in", batch),
             where("status", "==", "pending")
           );
-          
-          const unsubscribe = onSnapshot(q, (snapshot) => {
-            // 各バッチでのカウント
-            const batchCount = snapshot.docs.length;
-            
-            // 全体のカウントを更新
-            setPendingRequestsCount(batchCount);
-          }, (error) => {
-            console.error("Error in snapshot listener:", error);
-          });
-          
+
+          const unsubscribe = onSnapshot(
+            q,
+            (snapshot) => {
+              const batchCount = snapshot.docs.length;
+              // バッチごとのカウントを合計に加算する代わりに、全体のカウントを直接設定
+              setPendingRequestsCount(batchCount);
+            },
+            (error) => {
+              console.error("[NOBRIDGE] Firestore listener error:", error);
+              if (error.code === "permission-denied") {
+                console.error(
+                  "[NOBRIDGE] Permission denied. Please check Firestore rules."
+                );
+              }
+              // エラーが発生した場合でもカウントをリセット
+              setPendingRequestsCount(0);
+            }
+          );
+
           unsubscribes.push(unsubscribe);
         }
-      }).catch(error => {
-        console.error("Error setting up listeners:", error);
-      });
-    }, 2500); // 2.5秒待つ
-    
-    // クリーンアップ関数を適切に返す
+      } catch (error) {
+        console.error(
+          "[NOBRIDGE] Error setting up Firestore listeners:",
+          error
+        );
+        setPendingRequestsCount(0);
+      }
+    }, 1000); // エラー回避のため1秒待つ
+
     return () => {
-      clearTimeout(timer); // タイマーをクリア
-      
-      // すべてのリスナーを解除するコード
-      unsubscribes.forEach(unsub => {
-        if (typeof unsub === 'function') {
+      clearTimeout(timer);
+      unsubscribes.forEach((unsub) => {
+        if (typeof unsub === "function") {
           unsub();
         }
       });
