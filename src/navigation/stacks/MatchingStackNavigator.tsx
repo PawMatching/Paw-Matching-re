@@ -1,11 +1,9 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { MatchingStackParamList } from "../types";
+import MatchingMainScreen from "../../screens/matching/MatchingMainScreen";
 import MatchingRequestsScreen from "../../screens/matching/MatchingRequestsScreen";
-
-// 仮のコンポーネント（後で実装）
-const MatchingMainScreen = () => null;
-const MatchingSentScreen = () => null;
+import MatchingSentScreen from "../../screens/matching/MatchingSentScreen";
 
 const Stack = createNativeStackNavigator<MatchingStackParamList>();
 
