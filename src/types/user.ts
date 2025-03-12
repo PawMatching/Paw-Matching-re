@@ -6,6 +6,7 @@ export type UserData = {
   profileImage: string;
   userID: string;
   isOwner: boolean;
+  comment?: string;
 };
 
 export type DogData = {

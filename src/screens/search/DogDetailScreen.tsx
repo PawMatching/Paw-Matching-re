@@ -211,6 +211,9 @@ const DogDetailScreen = () => {
 
             <View style={styles.ownerDetails}>
               <Text style={styles.ownerName}>{owner.name || "名前なし"}</Text>
+              {owner.comment && (
+                <Text style={styles.ownerComment}>{owner.comment}</Text>
+              )}
             </View>
           </View>
         </View>
@@ -355,6 +358,12 @@ const styles = StyleSheet.create({
   ownerName: {
     fontSize: 16,
     fontWeight: "500",
+  },
+  ownerComment: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 4,
+    fontStyle: "italic",
   },
   actionsContainer: {
     padding: 16,
