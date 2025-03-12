@@ -5,6 +5,7 @@ import { HomeStackParamList } from "../types";
 import HomeScreen from "../../screens/home/HomeScreen";
 import RegisterDogScreen from "../../screens/account/RegisterDogScreen";
 import SearchDogsScreen from "../../screens/search/SearchDogsScreen";
+import DogDetailScreen from "../../screens/search/DogDetailScreen";
 
 // 仮のコンポーネント（後で実装）
 const StartWalkScreen = () => null;
@@ -40,6 +41,13 @@ const HomeStackNavigator = () => {
         component={SearchDogsScreen}
         options={{
           title: "近くのわんちゃん",
+        }}
+      />
+      <Stack.Screen
+        name="DogDetail"
+        component={DogDetailScreen}
+        options={{
+          title: "わんちゃんの詳細",
         }}
       />
     </Stack.Navigator>

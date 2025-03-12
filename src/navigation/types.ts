@@ -9,6 +9,7 @@ export type HomeStackParamList = {
   RegisterDog: undefined;
   StartWalk: undefined;
   Search: undefined;
+  DogDetail: { dog: Dog };
 };
 
 export type SearchStackParamList = {

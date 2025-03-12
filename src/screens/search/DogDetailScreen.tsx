@@ -1,3 +1,4 @@
+// src/screens/search/DogDetailScreen.tsx
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -26,14 +27,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { Dog } from "../../types/dog";
 import { UserData } from "../../types/user";
 
+// 修正
 type DogDetailRouteParams = {
-  DogDetail: {
+  params: {
     dog: Dog;
   };
 };
 
 const DogDetailScreen = () => {
-  const route = useRoute<RouteProp<DogDetailRouteParams, "DogDetail">>();
+  // 修正
+  const route = useRoute<RouteProp<DogDetailRouteParams, "params">>();
   const navigation = useNavigation();
   const { dog } = route.params;
 
