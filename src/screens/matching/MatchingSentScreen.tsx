@@ -23,8 +23,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 type DogData = {
-  name: string;
-  images: string[];
+  dogname: string;
+  profileImage?: string;
   userID: string;
 };
 
@@ -74,8 +74,11 @@ const MatchingSentScreen = () => {
                   snapshot.docs.map((doc) => doc.data())
                 );
                 const data = docSnapshot.data() as DocumentData;
+                // デバッグ用に犬のIDを出力
+                console.log(`Fetching dog with ID: ${data.dogID}`);
                 // 犬の情報を取得
-                const dogDoc = await getDoc(doc(db, "dogs", data.dogID));
+                const dogDocRef = doc(db, "dogs", data.dogID);
+                const dogDoc = await getDoc(dogDocRef);
 
                 if (!dogDoc.exists()) {
                   console.warn(`Dog document not found for ID: ${data.dogID}`);
@@ -83,15 +86,16 @@ const MatchingSentScreen = () => {
                 }
 
                 const dogData = dogDoc.data() as DogData;
+                console.log(`Dog data retrieved:`, dogData);  // 犬のデータを詳しくログ出力
 
                 return {
                   id: docSnapshot.id,
                   dogID: data.dogID,
-                  dogName: dogData?.name || "不明な犬",
-                  dogImage: dogData?.images?.[0] || null,
+                  dogName: dogData?.dogname || "不明な犬",
+                  dogImage: dogData?.profileImage || null,
                   status: data.status,
                   message: data.message || "",
-                  createdAt: data.createdAt?.toDate() || new Date(),
+                  createdAt: data.appliedAt?.toDate() || new Date(),
                 };
               } catch (err) {
                 console.error("Error processing document:", err);
