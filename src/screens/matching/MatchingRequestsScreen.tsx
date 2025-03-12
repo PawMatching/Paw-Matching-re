@@ -60,22 +60,20 @@ const MatchingRequestsScreen = () => {
   const auth = getAuth();
   const currentUser = auth.currentUser;
 
-  useEffect(() => {
-    fetchRequests();
-  }, []);
-
+  // fetchRequestsを一箇所だけで定義
   const fetchRequests = async () => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      setIsLoading(false);
+      return undefined;
+    }
 
     try {
       const db = getFirestore();
       const appliesRef = collection(db, "applies");
-      // デバッグ用
       console.log("Query params:", {
         dogOwnerID: currentUser.uid,
         status: "pending",
       });
-
       const q = query(
         appliesRef,
         where("dogOwnerID", "==", currentUser.uid),
@@ -86,7 +84,6 @@ const MatchingRequestsScreen = () => {
       const unsubscribe = onSnapshot(
         q,
         async (querySnapshot) => {
-          // デバッグ用
           console.log("Query snapshot size:", querySnapshot.size);
           console.log(
             "Raw data:",
@@ -94,40 +91,75 @@ const MatchingRequestsScreen = () => {
           );
           const requestsData: RequestWithUserAndDog[] = [];
 
-          for (const docSnapshot of querySnapshot.docs) {
-            const requestData = {
-              id: docSnapshot.id,
-              ...docSnapshot.data(),
-            } as PettingRequest;
+          // すべてのドキュメント処理が終わるのを待つための配列
+          const promises = querySnapshot.docs.map(async (docSnapshot) => {
+            try {
+              const requestData = {
+                id: docSnapshot.id,
+                ...docSnapshot.data(),
+              } as PettingRequest;
 
-            // 自分の犬に対する申請のみを取得
-            const dogDocRef = doc(db, "dogs", requestData.dogID);
-            const dogDocSnapshot = await getDoc(dogDocRef);
-            if (
-              !dogDocSnapshot.exists() ||
-              dogDocSnapshot.data().userID !== currentUser.uid
-            )
-              continue;
+              // デバッグ用に犬のID表示
+              console.log("Fetching dog with ID:", requestData.dogID);
 
-            // 申請者の情報を取得
-            const userDocRef = doc(db, "users", requestData.userID);
-            const userDocSnapshot = await getDoc(userDocRef);
-            if (!userDocSnapshot.exists()) continue;
+              // 自分の犬に対する申請のみを取得
+              const dogDocRef = doc(db, "dogs", requestData.dogID);
+              const dogDocSnapshot = await getDoc(dogDocRef);
 
-            const dogData = dogDocSnapshot.data();
-            const userData = userDocSnapshot.data();
+              if (!dogDocSnapshot.exists()) {
+                console.error("Dog document not found:", requestData.dogID);
+                return null;
+              }
 
-            requestsData.push({
-              ...requestData,
-              requester: userData as UserData,
-              dog: {
-                id: requestData.dogID,
-                ...dogData,
-              } as Dog,
-            });
-          }
+              const dogData = dogDocSnapshot.data();
 
-          setRequests(requestsData);
+              if (dogData.userID !== currentUser.uid) {
+                console.log(
+                  "Dog does not belong to current user:",
+                  dogData.userID,
+                  currentUser.uid
+                );
+                return null;
+              }
+
+              // デバッグ用にユーザーのID表示
+              console.log("Fetching user with ID:", requestData.userID);
+
+              // 申請者の情報を取得
+              const userDocRef = doc(db, "users", requestData.userID);
+              const userDocSnapshot = await getDoc(userDocRef);
+
+              if (!userDocSnapshot.exists()) {
+                console.error("User document not found:", requestData.userID);
+                return null;
+              }
+
+              const userData = userDocSnapshot.data();
+
+              return {
+                ...requestData,
+                requester: userData as UserData,
+                dog: {
+                  id: requestData.dogID,
+                  ...dogData,
+                } as Dog,
+              };
+            } catch (error) {
+              console.error("Error processing document:", error);
+              return null;
+            }
+          });
+
+          // すべてのPromiseが解決するのを待つ
+          const results = await Promise.all(promises);
+          // nullを除外する
+          const validResults = results.filter(
+            (result) => result !== null
+          ) as RequestWithUserAndDog[];
+
+          console.log("Processed requests:", validResults.length);
+          setRequests(validResults);
+          setIsLoading(false);
         },
         (error) => {
           console.error("Error fetching requests:", error);
@@ -135,14 +167,33 @@ const MatchingRequestsScreen = () => {
           setIsLoading(false);
         }
       );
-      // クリーンアップ関数を返す
-      return () => unsubscribe();
+
+      return unsubscribe;
     } catch (error) {
-      console.error("Error fetching requests:", error);
+      console.error("Error setting up requests listener:", error);
       Alert.alert("エラー", "申請の取得中にエラーが発生しました。");
       setIsLoading(false);
+      return undefined;
     }
   };
+
+  // useEffectでfetchRequestsを呼び出す
+  useEffect(() => {
+    setIsLoading(true);
+    const unsubscribePromise = fetchRequests();
+
+    // クリーンアップ関数
+    return () => {
+      // Promiseが解決されたら、その結果（unsubscribe関数）を実行する
+      unsubscribePromise
+        .then((unsubscribeFunc) => {
+          if (unsubscribeFunc) unsubscribeFunc();
+        })
+        .catch((err) => {
+          console.error("Error during cleanup:", err);
+        });
+    };
+  }, []);
 
   const handleAccept = async (request: RequestWithUserAndDog) => {
     try {
@@ -221,7 +272,7 @@ const MatchingRequestsScreen = () => {
         )}
         <View style={styles.requestInfo}>
           <Text style={styles.requestTitle}>
-            {item.requester.name}さんから{item.dog.name}へ
+            {item.requester.name}さんから
           </Text>
           <Text style={styles.requestMessage}>{item.message}</Text>
           {item.requester.comment && (
@@ -336,6 +387,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
     fontStyle: "italic",
+    marginTop: 12,
   },
   actionButtons: {
     marginTop: 12,
