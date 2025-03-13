@@ -1,6 +1,6 @@
 // App.tsx
 import React, { useState, useEffect, useRef } from "react";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, useNavigation } from "@react-navigation/native";
 import { StatusBar } from "expo-status-bar";
 import RootNavigator from "./src/navigation/RootNavigator";
 import { useAuthState } from "./src/hooks/useAuthState";
@@ -13,6 +13,24 @@ import {
 } from "./src/utils/notifications";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "./src/config/firebase";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+
+type RootStackParamList = {
+  Chat: {
+    screen: string;
+    params: { matchId: string };
+  };
+  Match: {
+    screen: string;
+    params: { matchId: string };
+  };
+  Mofumofu: {
+    screen: string;
+    params: { requestId: string };
+  };
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 // 通知の表示方法を設定
 Notifications.setNotificationHandler({
@@ -22,6 +40,49 @@ Notifications.setNotificationHandler({
     shouldSetBadge: true,
   }),
 });
+
+// 通知タップ時の画面遷移を処理するコンポーネント
+function NotificationHandler() {
+  const navigation = useNavigation<NavigationProp>();
+
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        const { type, data } = response.notification.request.content.data as {
+          type: string;
+          data: any;
+        };
+
+        switch (type) {
+          case "chat":
+            navigation.navigate("Chat", {
+              screen: "ChatRoom",
+              params: { matchId: data.matchId },
+            });
+            break;
+          case "match":
+            navigation.navigate("Match", {
+              screen: "MatchDetail",
+              params: { matchId: data.matchId },
+            });
+            break;
+          case "mofumofu":
+            navigation.navigate("Mofumofu", {
+              screen: "MofumofuDetail",
+              params: { requestId: data.requestId },
+            });
+            break;
+          default:
+            console.log("未対応の通知タイプ:", type);
+        }
+      }
+    );
+
+    return () => subscription.remove();
+  }, [navigation]);
+
+  return null;
+}
 
 export default function App() {
   const { isAuthenticated, user } = useAuthState();
@@ -55,7 +116,6 @@ export default function App() {
               type: string;
             };
             console.log("通知がタップされました:", type);
-            // TODO: 通知タイプに応じた画面遷移を実装
           }
         );
       } catch (e) {
@@ -123,6 +183,7 @@ export default function App() {
   return (
     <NavigationContainer>
       <StatusBar style="auto" />
+      <NotificationHandler />
       <RootNavigator initialAuthenticated={isAuthenticated} />
     </NavigationContainer>
   );
