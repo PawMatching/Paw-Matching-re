@@ -11,9 +11,20 @@ import {
   addNotificationReceivedListener,
   addNotificationResponseReceivedListener,
 } from "./src/utils/notifications";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "./src/config/firebase";
+
+// 通知の表示方法を設定
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 export default function App() {
-  const { isAuthenticated } = useAuthState();
+  const { isAuthenticated, user } = useAuthState();
   const [appIsReady, setAppIsReady] = useState(false);
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const notificationListener = useRef<Notifications.Subscription>();
@@ -30,7 +41,9 @@ export default function App() {
         // 通知受信時のリスナーを設定
         notificationListener.current = addNotificationReceivedListener(
           (notification) => {
-            const { type } = notification.request.content.data;
+            const { type } = notification.request.content.data as {
+              type: string;
+            };
             console.log("通知を受信しました:", type);
           }
         );
@@ -38,9 +51,11 @@ export default function App() {
         // 通知タップ時のリスナーを設定
         responseListener.current = addNotificationResponseReceivedListener(
           (response) => {
-            const { type } = response.notification.request.content.data;
+            const { type } = response.notification.request.content.data as {
+              type: string;
+            };
             console.log("通知がタップされました:", type);
-            // ここで必要な画面遷移などの処理を追加
+            // TODO: 通知タイプに応じた画面遷移を実装
           }
         );
       } catch (e) {
@@ -64,6 +79,29 @@ export default function App() {
       }
     };
   }, []);
+
+  // ユーザーのログイン状態が変更されたときにトークンを保存
+  useEffect(() => {
+    async function saveToken() {
+      if (user && expoPushToken) {
+        try {
+          await setDoc(
+            doc(db, "users", user.uid),
+            {
+              expoPushToken,
+              lastTokenUpdate: new Date(),
+            },
+            { merge: true }
+          );
+          console.log("Expoトークンを保存しました");
+        } catch (error) {
+          console.error("Expoトークンの保存に失敗しました:", error);
+        }
+      }
+    }
+
+    saveToken();
+  }, [user, expoPushToken]);
 
   // アプリの準備ができていない場合はローディング画面を表示
   if (!appIsReady) {
