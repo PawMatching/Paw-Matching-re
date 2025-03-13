@@ -67,7 +67,7 @@ const ChatListScreen = () => {
           // 犬の情報を取得
           const dogDoc = await getDoc(doc(db, "dogs", dogId));
           const dogData = dogDoc.exists()
-            ? (dogDoc.data() as { dogname?: string; images?: string[] })
+            ? (dogDoc.data() as { dogname?: string; profileImage?: string })
             : null;
 
           return {
@@ -76,7 +76,7 @@ const ChatListScreen = () => {
               userData?.name || userData?.displayName || "匿名ユーザー",
             otherUserImage: userData?.profileImage || null,
             dogName: dogData?.dogname || "不明な犬",
-            dogImage: dogData?.images?.[0] || null,
+            dogImage: dogData?.profileImage || null,
             isUserDogOwner: isUserDogOwner,
           };
         });
