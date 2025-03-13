@@ -11,6 +11,7 @@ export type UserData = {
 
 export type DogData = {
   dogname: string;
+  id: string;
   profileImage: string;
   userID: string;
   breed: string;

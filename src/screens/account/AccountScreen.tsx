@@ -65,7 +65,11 @@ const AccountScreen = () => {
           const dogSnapshot = await getDocs(dogsQuery);
 
           if (!dogSnapshot.empty) {
-            const dogData = dogSnapshot.docs[0].data() as DogData;
+            const dogDoc = dogSnapshot.docs[0];
+            const dogData = {
+              id: dogDoc.id,
+              ...dogDoc.data(),
+            } as DogData;
             setDogData(dogData);
           }
         } else {
@@ -112,7 +116,7 @@ const AccountScreen = () => {
 
   const handleEditDogProfile = () => {
     if (dogData) {
-      navigation.navigate("EditDogProfile", { dogId: dogData.userID });
+      navigation.navigate("EditDogProfile", { dogId: dogData.id });
     }
   };
 
