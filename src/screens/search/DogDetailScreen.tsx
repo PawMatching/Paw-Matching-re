@@ -110,6 +110,7 @@ const DogDetailScreen = () => {
         applyID: `apply_${Date.now()}`,
         userID: currentUser.uid,
         dogID: dog.id,
+        dogname: dog.dogname,
         dogOwnerID: dog.userID,
         status: "pending",
         message: `${currentUser.displayName || "ゲスト"}さんが${
