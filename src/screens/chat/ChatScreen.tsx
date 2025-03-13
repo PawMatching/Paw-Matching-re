@@ -89,7 +89,7 @@ const ChatScreen = () => {
                 {otherUserName}さんとのチャット
               </Text>
               {isOtherUserOwner && dogName && (
-                <Text style={styles.headerSubtitle}>{dogName}の飼い主さん</Text>
+                <Text style={styles.headerSubtitle}>{dogName}ちゃんの飼い主さん</Text>
               )}
             </View>
           ),

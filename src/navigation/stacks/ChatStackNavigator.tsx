@@ -1,7 +1,7 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ChatStackParamList } from "../types";
-// import ChatListScreen from "../../screens/chat/ChatListScreen";
+import ChatListScreen from "../../screens/chat/ChatListScreen";
 import ChatScreen from "../../screens/chat/ChatScreen";
 
 const Stack = createNativeStackNavigator<ChatStackParamList>();
@@ -16,19 +16,19 @@ const ChatStackNavigator = () => {
         },
       }}
     >
-      {/* <Stack.Screen
+      <Stack.Screen
         name="ChatList"
         component={ChatListScreen}
         options={{
           title: "チャット一覧",
         }}
-      /> */}
+      />
       <Stack.Screen
         name="ChatScreen"
         component={ChatScreen}
         options={{
           headerShown: true,
-          // headerBackTitleVisible: false,
+          headerBackVisible: false,
         }}
       />
     </Stack.Navigator>

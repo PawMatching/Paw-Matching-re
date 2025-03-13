@@ -1,3 +1,4 @@
+// src/types/chat.ts
 import { Timestamp } from "firebase/firestore";
 
 export interface Match {
@@ -27,4 +28,12 @@ export interface ChatData {
   lastMessageAt: Timestamp;
   lastMessage: string | null;
   lastMessageTime: Timestamp | null;
+}
+
+export interface ChatWithDetails extends ChatData {
+  otherUserName: string;
+  otherUserImage: string | null;
+  dogName: string;
+  dogImage: string | null;
+  isUserDogOwner: boolean;
 }
