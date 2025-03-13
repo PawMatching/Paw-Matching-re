@@ -40,4 +40,6 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Google Cloud Platform
+google-services .json
 GoogleService-Info.plist
