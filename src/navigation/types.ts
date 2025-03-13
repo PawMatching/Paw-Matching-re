@@ -25,7 +25,13 @@ export type MatchingStackParamList = {
 
 export type ChatStackParamList = {
   ChatList: undefined;
-  ChatRoom: { dogName: string; chatId: string };
+  ChatScreen: {
+    matchId?: string;
+    chatId?: string;
+    dogId: string;
+    dogName: string;
+    otherUserId: string;
+  };
 };
 
 export type AccountStackParamList = {

@@ -35,6 +35,7 @@ type PettingRequest = {
   applyID: string;
   userID: string; //申請者のID
   dogID: string; //犬のID
+  dogname: string;
   dogOwnerID: string; //飼い主のID
   status: "pending" | "accepted" | "rejected";
   message: string;
@@ -199,28 +200,51 @@ const MatchingRequestsScreen = () => {
     try {
       const db = getFirestore();
       const requestRef = doc(db, "applies", request.id);
-
+      const currentTimestamp = new Date();
+  
       // トランザクションで処理を行う
       await runTransaction(db, async (transaction) => {
         // 申請のステータスを更新
         transaction.update(requestRef, {
           status: "accepted",
-          updatedAt: new Date(),
+          updatedAt: currentTimestamp,
         });
-
-        // チャットルームを作成
-        const chatRef = doc(collection(db, "chats"));
-        transaction.set(chatRef, {
+  
+        // まず matches コレクションにドキュメントを作成
+        const matchRef = doc(collection(db, "matches"));
+        const matchData = {
+          dogID: request.dogID,
           dogOwnerID: currentUser?.uid,
           pettingUserID: request.userID,
+          status: "active",
+          createdAt: currentTimestamp,
+        };
+        
+        transaction.set(matchRef, matchData);
+  
+        // チャットルームを作成
+        const chatRef = doc(collection(db, "chats"));
+        const chatData = {
+          chatID: chatRef.id,
           dogID: request.dogID,
-          dogName: request.dog.name,
-          createdAt: new Date(),
+          matchID: matchRef.id,
+          dogOwnerID: currentUser?.uid,
+          pettingUserID: request.userID,
+          dogName: request.dog.dogname || "不明な犬",
+          createdAt: currentTimestamp,
           lastMessage: null,
-          lastMessageAt: null,
+          lastMessageAt: currentTimestamp,
+          lastMessageTime: null
+        };
+        
+        transaction.set(chatRef, chatData);
+  
+        // matches ドキュメントに chatId を追加
+        transaction.update(matchRef, {
+          chatId: chatRef.id
         });
       });
-
+  
       Alert.alert(
         "承認しました",
         "モフモフ申請を承認しました。チャットで詳細を話し合いましょう！",

@@ -143,7 +143,7 @@ const SearchDogsScreen = ({
           console.log(`Dog ${doc.id} is within search radius`);
           nearbyDogsArray.push({
             id: doc.id,
-            name: dogData.dogname || "", // dognameフィールドを使用
+            dogname: dogData.dogname || "", // dognameフィールドを使用
             sex: dogData.sex || "male",
             profileImage: dogData.profileImage || "",
             age: dogData.age || 0,
@@ -227,7 +227,7 @@ const SearchDogsScreen = ({
           resizeMode="cover"
         />
         <View style={styles.dogInfo}>
-          <Text style={styles.dogName}>{item.name}</Text>
+          <Text style={styles.dogName}>{item.dogname}</Text>
           <Text style={styles.dogDetail}>
             {item.sex === "male" ? "♂ オス" : "♀ メス"} • {item.age}歳
           </Text>
