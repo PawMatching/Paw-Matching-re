@@ -32,6 +32,7 @@ import { getAuth } from "firebase/auth";
 import { styles } from "./styles";
 import { ChatStackParamList } from "../../navigation/types";
 import { Message, ChatData } from "../../types/chat";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const ChatScreen = () => {
   const route = useRoute<RouteProp<ChatStackParamList, "ChatScreen">>();
@@ -72,44 +73,56 @@ const ChatScreen = () => {
         const userDoc = await getDoc(doc(db, "users", otherUserId));
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          setOtherUserName(
-            userData.displayName || userData.name || "匿名ユーザー"
-          );
+          // 名前の取得方法を修正
+          const userName =
+            userData.displayName || userData.name || "匿名ユーザー";
+          setOtherUserName(userName);
+
+          // デバッグ用
+          console.log("取得したユーザー情報:", userData);
+          console.log("設定する名前:", userName);
+
           // 相手がisOwnerで、かつその犬の飼い主である場合のみtrue
           setIsOtherUserOwner(
             userData.isOwner && dogData?.userID === otherUserId
           );
         }
-
-        // ヘッダーの設定
-        navigation.setOptions({
-          headerTitle: () => (
-            <View style={styles.headerContainer}>
-              <Text style={styles.headerTitle}>
-                {otherUserName}さんとのチャット
-              </Text>
-              {isOtherUserOwner && dogName && (
-                <Text style={styles.headerSubtitle}>{dogName}ちゃんの飼い主さん</Text>
-              )}
-            </View>
-          ),
-          headerTitleAlign: "center" as const,
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.headerButton}
-            >
-              <Ionicons name="chevron-back" size={24} color="#4dabf7" />
-            </TouchableOpacity>
-          ),
-        });
       } catch (error) {
         console.error("Error fetching user and dog info:", error);
       }
     };
 
     fetchUserAndDogInfo();
-  }, [navigation, otherUserId, dogId, isOtherUserOwner]);
+  }, [otherUserId, dogId, db]);
+
+  // 別のuseEffectでヘッダー設定を行う
+  useEffect(() => {
+    // ヘッダーの設定
+    navigation.setOptions({
+      headerTitle: () => (
+        <View style={styles.headerContainer}>
+          <Text style={styles.headerTitle}>
+            {otherUserName}さんとのチャット
+          </Text>
+          {isOtherUserOwner && dogName && (
+            <Text style={styles.headerSubtitle}>{dogName}の飼い主さん</Text>
+          )}
+          {!isOtherUserOwner && (
+            <Text style={styles.headerSubtitle}>モフモフ申請者</Text>
+          )}
+        </View>
+      ),
+      headerTitleAlign: "center" as const,
+      headerLeft: () => (
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.headerButton}
+        >
+          <Ionicons name="chevron-back" size={24} color="#4dabf7" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, otherUserName, dogName, isOtherUserOwner]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -349,56 +362,63 @@ const ChatScreen = () => {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-    >
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4dabf7" />
-          <Text style={styles.loadingText}>
-            メッセージを読み込んでいます...
-          </Text>
-        </View>
-      ) : (
-        <>
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            renderItem={renderMessageItem}
-            keyExtractor={(item) => item.id}
-            inverted
-            contentContainerStyle={styles.messagesContainer}
-          />
-        </>
-      )}
+    <SafeAreaView style={styles.container} edges={["left", "right"]}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#4dabf7" />
+            <Text style={styles.loadingText}>
+              メッセージを読み込んでいます...
+            </Text>
+          </View>
+        ) : (
+          <>
+            <FlatList
+              ref={flatListRef}
+              data={messages}
+              renderItem={renderMessageItem}
+              keyExtractor={(item) => item.id}
+              inverted
+              contentContainerStyle={styles.messagesContainer}
+            />
+          </>
+        )}
 
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          value={newMessage}
-          onChangeText={setNewMessage}
-          placeholder="メッセージを入力..."
-          placeholderTextColor="#adb5bd"
-          multiline
-        />
-        <TouchableOpacity
+        <View
           style={[
-            styles.sendButton,
-            !newMessage.trim() && styles.sendButtonDisabled,
+            styles.inputContainer,
+            Platform.OS === "ios" && { paddingBottom: 0 },
           ]}
-          onPress={sendMessage}
-          disabled={!newMessage.trim()}
         >
-          <Ionicons
-            name="send"
-            size={24}
-            color={newMessage.trim() ? "#4dabf7" : "#adb5bd"}
+          <TextInput
+            style={styles.input}
+            value={newMessage}
+            onChangeText={setNewMessage}
+            placeholder="メッセージを入力..."
+            placeholderTextColor="#adb5bd"
+            multiline
           />
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              !newMessage.trim() && styles.sendButtonDisabled,
+            ]}
+            onPress={sendMessage}
+            disabled={!newMessage.trim()}
+          >
+            <Ionicons
+              name="send"
+              size={24}
+              color={newMessage.trim() ? "#4dabf7" : "#adb5bd"}
+            />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 

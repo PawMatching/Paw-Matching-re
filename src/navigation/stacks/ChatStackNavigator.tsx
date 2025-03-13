@@ -1,3 +1,4 @@
+// src/navigation/stacks/ChatStackNavigator.tsx
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ChatStackParamList } from "../types";
@@ -13,6 +14,10 @@ const ChatStackNavigator = () => {
         headerShown: true,
         headerTitleStyle: {
           fontWeight: "600",
+        },
+        contentStyle: { backgroundColor: "white" },
+        headerStyle: {
+          backgroundColor: "white",
         },
       }}
     >

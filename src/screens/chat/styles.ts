@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform } from "react-native";
 
 export const styles = StyleSheet.create({
   container: {
@@ -107,7 +107,9 @@ export const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: "row",
-    padding: 16,
+    padding: 10,
+    paddingHorizontal: 16,
+    paddingBottom: Platform.OS === "ios" ? 10 : 12,
     borderTopWidth: 1,
     borderTopColor: "#dee2e6",
     backgroundColor: "#fff",
@@ -116,7 +118,6 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f8f9fa",
     borderRadius: 20,
-    paddingHorizontal: 16,
     paddingVertical: 8,
     marginRight: 8,
     fontSize: 16,

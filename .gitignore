@@ -41,5 +41,5 @@ yarn-error.*
 *.tsbuildinfo
 
 # Google Cloud Platform
-google-services .json
+google-services.json
 GoogleService-Info.plist
