@@ -21,7 +21,14 @@ import { getStorage } from "firebase/storage";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { AccountStackParamList } from "../../navigation/types";
-import { doc, setDoc, updateDoc, collection, addDoc } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  updateDoc,
+  collection,
+  addDoc,
+  getDoc,
+} from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuthState } from "../../hooks/useAuthState";
 
@@ -80,7 +87,7 @@ const RegisterDogScreen = () => {
     return true;
   };
 
-  // uploadImage関数の修正
+  // uploadImage関数の修正: dogIdを使用
   const uploadImage = async (uri: string, dogId: string) => {
     try {
       console.log("画像アップロード開始:", uri);
@@ -89,9 +96,9 @@ const RegisterDogScreen = () => {
       const response = await fetch(uri);
       const blob = await response.blob();
 
-      // 正しいパスに戻す
-      const storageRef = ref(storage, `dogs/${dogId}/profile/dogImage`);
-      console.log("アップロード先パス:", `dogs/${dogId}/profile/dogImage`);
+      // dogIdを使用してストレージパスを設定
+      const storageRef = ref(storage, `dogs/${dogId}/profile/profileImage`);
+      console.log("アップロード先パス:", `dogs/${dogId}/profile/profileImage`);
 
       // アップロード処理
       console.log("uploadBytes開始...");
@@ -115,7 +122,7 @@ const RegisterDogScreen = () => {
     }
   };
 
-  // handleRegister関数の修正
+  // handleRegister関数の修正: dogIdを正しく取得して使用
   const handleRegister = async () => {
     if (!user) {
       Alert.alert("エラー", "ログインが必要です");
@@ -129,7 +136,6 @@ const RegisterDogScreen = () => {
       console.log("犬の登録処理を開始します");
 
       // まずFirestoreドキュメントを作成
-      // 修正
       const dogCollectionRef = collection(db, "dogs");
       const dogDocRef = await addDoc(dogCollectionRef, {
         userID: user.uid,
@@ -139,10 +145,16 @@ const RegisterDogScreen = () => {
         likes: likes,
         notes: remarks,
         profileImage: null, // まずnullに設定
+        isWalking: false, // 初期値を設定
+        latitude: 0, // 初期値を設定
+        longitude: 0, // 初期値を設定
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      console.log("ドキュメントの作成準備完了:", user.uid);
+
+      // ドキュメントIDを取得 - この部分が重要
+      const dogId = dogDocRef.id;
+      console.log("ドキュメントの作成完了。dogId:", dogId);
 
       // Firestoreドキュメント作成後に画像をアップロード
       let imageUrl = null;
@@ -150,12 +162,27 @@ const RegisterDogScreen = () => {
         try {
           console.log("画像アップロード処理を開始します");
 
-          // 少し待ってからアップロード（Firestoreの更新が反映されるまで待つ）
-          console.log("1秒待機中...");
+          // Firestoreの更新が反映されるまで待つ
+          console.log("Firestoreの更新を待機中...");
           await new Promise((resolve) => setTimeout(resolve, 1000));
           console.log("待機完了");
 
-          imageUrl = await uploadImage(image, user.uid);
+          // ドキュメントの存在を確認
+          const dogDoc = await getDoc(dogDocRef);
+          if (!dogDoc.exists()) {
+            throw new Error("ドキュメントが見つかりません");
+          }
+
+          // ドキュメントの内容を確認
+          const dogData = dogDoc.data();
+          console.log("ドキュメントの内容:", dogData);
+
+          if (dogData.userID !== user.uid) {
+            throw new Error("ユーザーIDが一致しません");
+          }
+
+          // ここで正しいdogIdを渡す
+          imageUrl = await uploadImage(image, dogId);
           console.log("画像のアップロードに成功しました。URL:", imageUrl);
 
           // 画像URLでドキュメントを更新
