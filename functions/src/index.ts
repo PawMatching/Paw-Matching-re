@@ -4,6 +4,7 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
+// functions/src/index.ts
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
