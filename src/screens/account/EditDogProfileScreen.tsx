@@ -126,24 +126,24 @@ const EditDogProfileScreen = () => {
     try {
       console.log("画像アップロード開始:", uri);
       console.log("dogId:", dogId);
-      
+
       const response = await fetch(uri);
       const blob = await response.blob();
 
       // dogIdを使用してストレージパスを設定
-      const storageRef = ref(storage, `dogs/${dogId}/profile/dogImage`);
-      console.log("アップロード先パス:", `dogs/${dogId}/profile/dogImage`);
-      
+      const storageRef = ref(storage, `dogs/${dogId}/profile/profileImage`);
+      console.log("アップロード先パス:", `dogs/${dogId}/profile/profileImage`);
+
       // アップロード処理
       console.log("uploadBytes開始...");
       const uploadTask = await uploadBytes(storageRef, blob);
       console.log("uploadBytes完了:", uploadTask);
-      
+
       // URLの取得
       console.log("getDownloadURL開始...");
       const downloadURL = await getDownloadURL(uploadTask.ref);
       console.log("getDownloadURL完了:", downloadURL);
-      
+
       return downloadURL;
     } catch (error) {
       console.error("画像アップロード処理エラー（詳細）:", error);
@@ -171,7 +171,7 @@ const EditDogProfileScreen = () => {
       // まずドキュメントを更新
       const dogDocRef = doc(db, "dogs", route.params.dogId);
       console.log("ドキュメントの更新準備完了:", route.params.dogId);
-      
+
       await updateDoc(dogDocRef, {
         dogname: name,
         age: parseInt(age),
@@ -188,19 +188,33 @@ const EditDogProfileScreen = () => {
       if (image && !image.startsWith("http")) {
         try {
           console.log("画像アップロード処理を開始します");
-          
-          // 少し待ってからアップロード（Firestoreの更新が反映されるまで待つ）
-          console.log("1秒待機中...");
-          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          // Firestoreの更新が反映されるまで待つ
+          console.log("Firestoreの更新を待機中...");
+          await new Promise((resolve) => setTimeout(resolve, 1000)); 
           console.log("待機完了");
-          
+
+          // ドキュメントの存在を確認
+          const dogDoc = await getDoc(dogDocRef);
+          if (!dogDoc.exists()) {
+            throw new Error("ドキュメントが見つかりません");
+          }
+
+          // ドキュメントの内容を確認
+          const dogData = dogDoc.data();
+          console.log("ドキュメントの内容:", dogData);
+
+          if (dogData.userID !== user.uid) {
+            throw new Error("ユーザーIDが一致しません");
+          }
+
           imageUrl = await uploadImage(image, route.params.dogId);
           console.log("画像のアップロードに成功しました。URL:", imageUrl);
-          
+
           // 画像URLでドキュメントを更新
           await updateDoc(dogDocRef, {
             profileImage: imageUrl,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           });
           console.log("犬のドキュメントを画像URLで更新しました");
         } catch (uploadError) {
@@ -211,7 +225,9 @@ const EditDogProfileScreen = () => {
           );
         }
       } else {
-        console.log("画像はHTTP URL形式か選択されていないため、アップロードはスキップします");
+        console.log(
+          "画像はHTTP URL形式か選択されていないため、アップロードはスキップします"
+        );
       }
 
       Alert.alert("更新完了", "わんちゃんのプロフィールを更新しました", [
@@ -247,7 +263,6 @@ const EditDogProfileScreen = () => {
       </View>
     );
   }
-
 
   return (
     <ScrollView>
