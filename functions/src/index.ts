@@ -52,44 +52,20 @@ async function sendPushNotification(
   }
 }
 
-// チャットメッセージ受信時の通知
-export const onNewChatMessage = functions.firestore
-  .document("chats/{chatId}/messages/{messageId}")
+// もふもふリクエスト受信時の通知
+export const onMofumofuRequest = functions.firestore
+  .document("applies/{applyId}")
   .onCreate(async (snap, context) => {
-    const message = snap.data();
-    if (!message) return;
+    const apply = snap.data();
+    if (!apply) return;
 
-    const chatId = context.params.chatId;
+    const applyId = context.params.applyId;
 
-    // メッセージ送信者の情報を取得
-    const senderDoc = await admin
-      .firestore()
-      .collection("users")
-      .doc(message.senderId)
-      .get();
-    const senderData = senderDoc.data();
-
-    // チャットの受信者を取得
-    const chatDoc = await admin
-      .firestore()
-      .collection("chats")
-      .doc(chatId)
-      .get();
-    const chatData = chatDoc.data();
-    const receiverId = chatData?.participants.find(
-      (id: string) => id !== message.senderId
-    );
-
-    if (!receiverId) {
-      logger.info("Receiver not found");
-      return;
-    }
-
-    // 受信者のExpoトークンを取得
+    // リクエスト受信者の情報を取得
     const receiverDoc = await admin
       .firestore()
       .collection("users")
-      .doc(receiverId)
+      .doc(apply.dogOwnerID)
       .get();
     const receiverData = receiverDoc.data();
     const expoPushToken = receiverData?.expoPushToken;
@@ -99,16 +75,23 @@ export const onNewChatMessage = functions.firestore
       return;
     }
 
+    // 送信者の情報を取得
+    const senderDoc = await admin
+      .firestore()
+      .collection("users")
+      .doc(apply.userID)
+      .get();
+    const senderData = senderDoc.data();
+
     // 通知を送信
     await sendPushNotification(
       expoPushToken,
-      "新しいメッセージ",
-      `${senderData?.name || "ユーザー"}さんからメッセージが届きました`,
+      "もふもふリクエスト",
+      `${senderData?.name || "ユーザー"}さんからもふもふリクエストが届きました`,
       {
-        type: "chatMessage",
-        chatId,
-        messageId: context.params.messageId,
-        senderId: message.senderId,
+        type: "mofumofuRequest",
+        applyId,
+        senderId: apply.userID,
       }
     );
   });
@@ -122,8 +105,20 @@ export const onMatchCreated = functions.firestore
 
     const matchId = context.params.matchId;
 
+    const dogOwnerId = match.dogOwnerID;
+    const pettingUserId = match.pettingUserID;
+
+    // 両方のユーザーIDが存在するか確認
+    if (!dogOwnerId || !pettingUserId) {
+      logger.info("ユーザーIDが見つかりません", {matchId});
+      return;
+    }
+
+    // 通知を送信するユーザーIDの配列
+    const userIds = [dogOwnerId, pettingUserId];
+
     // マッチングした両方のユーザーに通知を送信
-    for (const userId of match.participants) {
+    for (const userId of userIds) {
       const userDoc = await admin
         .firestore()
         .collection("users")
@@ -132,16 +127,19 @@ export const onMatchCreated = functions.firestore
       const userData = userDoc.data();
       const expoPushToken = userData?.expoPushToken;
 
-      if (!expoPushToken) continue;
+      if (!expoPushToken) {
+        logger.info("プッシュトークンがありません", {userId});
+        continue;
+      }
 
-      const otherUserId = match.participants.find(
-        (id: string) => id !== userId
-      );
+      // 相手のユーザーIDを取得
+      const otherUserId = userId === dogOwnerId ? pettingUserId : dogOwnerId;
       const otherUserDoc = await admin
         .firestore()
         .collection("users")
         .doc(otherUserId)
         .get();
+
       const otherUserData = otherUserDoc.data();
 
       await sendPushNotification(
@@ -157,46 +155,80 @@ export const onMatchCreated = functions.firestore
     }
   });
 
-// もふもふリクエスト受信時の通知
-export const onMofumofuRequest = functions.firestore
-  .document("mofumofuRequests/{requestId}")
+// チャットメッセージ受信時の通知 (修正版)
+export const onNewChatMessage = functions.firestore
+  .document("chats/{chatId}/messages/{messageId}")
   .onCreate(async (snap, context) => {
-    const request = snap.data();
-    if (!request) return;
+    const message = snap.data();
+    if (!message) return;
 
-    const requestId = context.params.requestId;
+    const chatId = context.params.chatId;
+    const senderId = message.senderId;
 
-    // リクエスト受信者の情報を取得
+    if (!senderId) {
+      logger.info("送信者IDが見つかりません");
+      return;
+    }
+
+    // メッセージ送信者の情報を取得
+    const senderDoc = await admin
+      .firestore()
+      .collection("users")
+      .doc(senderId)
+      .get();
+    const senderData = senderDoc.data();
+
+    // チャットドキュメントを取得
+    const chatDoc = await admin
+      .firestore()
+      .collection("chats")
+      .doc(chatId)
+      .get();
+
+    if (!chatDoc.exists) {
+      logger.info("チャットドキュメントが見つかりません");
+      return;
+    }
+
+    const chatData = chatDoc.data();
+
+    // チャットデータからdogOwnerIDとpettingUserIDを取得
+    const dogOwnerId = chatData?.dogOwnerID;
+    const pettingUserId = chatData?.pettingUserID;
+
+    if (!dogOwnerId || !pettingUserId) {
+      logger.info("ユーザーIDが見つかりません");
+      return;
+    }
+
+    // 送信者と受信者を特定
+    const receiverId = senderId === dogOwnerId ? pettingUserId : dogOwnerId;
+
+    // 受信者のExpoトークンを取得
     const receiverDoc = await admin
       .firestore()
       .collection("users")
-      .doc(request.receiverId)
+      .doc(receiverId)
       .get();
+
     const receiverData = receiverDoc.data();
     const expoPushToken = receiverData?.expoPushToken;
 
     if (!expoPushToken) {
-      logger.info("Receiver has no Expo push token");
+      logger.info("受信者のExpoトークンが見つかりません", {receiverId});
       return;
     }
-
-    // 送信者の情報を取得
-    const senderDoc = await admin
-      .firestore()
-      .collection("users")
-      .doc(request.senderId)
-      .get();
-    const senderData = senderDoc.data();
 
     // 通知を送信
     await sendPushNotification(
       expoPushToken,
-      "もふもふリクエスト",
-      `${senderData?.name || "ユーザー"}さんからもふもふリクエストが届きました`,
+      "新しいメッセージ",
+      `${senderData?.name || "ユーザー"}さんからメッセージが届きました`,
       {
-        type: "mofumofuRequest",
-        requestId,
-        senderId: request.senderId,
+        type: "chatMessage",
+        chatId,
+        messageId: context.params.messageId,
+        senderId: senderId,
       }
     );
   });
