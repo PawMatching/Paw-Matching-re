@@ -163,7 +163,7 @@ export const onNewChatMessage = functions.firestore
     if (!message) return;
 
     const chatId = context.params.chatId;
-    const senderId = message.senderId;
+    const senderId = message.senderID;
 
     if (!senderId) {
       logger.info("送信者IDが見つかりません");
