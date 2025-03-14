@@ -213,6 +213,7 @@ const MatchingRequestsScreen = () => {
         // まず matches コレクションにドキュメントを作成
         const matchRef = doc(collection(db, "matches"));
         const matchData = {
+          id: matchRef.id,
           dogID: request.dogID,
           dogOwnerID: currentUser?.uid,
           pettingUserID: request.userID,
