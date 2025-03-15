@@ -232,3 +232,65 @@ export const onNewChatMessage = functions.firestore
       }
     );
   });
+
+// 1時間ごとに実行されるスケジュール関数
+export const resetWalkingStatus = functions.pubsub
+  .schedule("every 30 minutes") // コストに応じてここは30分ごとに変更
+  .onRun(async () => {
+    try {
+      const db = admin.firestore();
+      const rtdb = admin.database();
+
+      // 1時間前の時刻を計算
+      const oneHourAgo = new Date();
+      oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+
+      // isWalkingがtrueで、最終更新が1時間以上前の犬を検索
+      const dogsSnapshot = await db
+        .collection("dogs")
+        .where("isWalking", "==", true)
+        .where("lastWalkingStatusUpdate", "<", oneHourAgo)
+        .get();
+
+      // 一括更新のためのバッチを作成
+      const batch = db.batch();
+      const updates: Promise<void>[] = [];
+
+      console.log(`更新対象の犬: ${dogsSnapshot.size}匹`);
+
+      // 各犬のisWalkingステータスを更新
+      dogsSnapshot.forEach((dogDoc) => {
+        const dogId = dogDoc.id;
+        console.log(`犬ID: ${dogId} のお散歩ステータスをリセットします`);
+
+        // Firestoreの更新
+        batch.update(dogDoc.ref, {
+          isWalking: false,
+          lastWalkingStatusUpdate: new Date(),
+        });
+
+        // Realtime Databaseの更新も行う
+        const rtdbUpdate = rtdb
+          .ref(`locations/dogs/${dogId}`)
+          .update({
+            isWalking: false,
+            lastUpdated: new Date().toISOString(),
+          });
+
+        updates.push(rtdbUpdate);
+      });
+      // Firestoreのバッチを実行
+      await batch.commit();
+
+      // Realtime Databaseの更新を待機
+      if (updates.length > 0) {
+        await Promise.all(updates);
+      }
+
+      console.log(`${dogsSnapshot.size}匹の犬のお散歩ステータスをリセットしました`);
+      return null;
+    } catch (error) {
+      console.error("お散歩ステータスのリセット中にエラーが発生しました:", error);
+      return null;
+    }
+  });
