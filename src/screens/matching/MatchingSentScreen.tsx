@@ -7,6 +7,8 @@ import {
   FlatList,
   ActivityIndicator,
   Image,
+  Alert,
+  TouchableOpacity,
 } from "react-native";
 import { getAuth } from "firebase/auth";
 import {
@@ -19,8 +21,10 @@ import {
   getDoc,
   doc,
   DocumentData,
+  deleteDoc,
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
+import { Swipeable } from "react-native-gesture-handler";
 
 type DogData = {
   dogname: string;
@@ -45,6 +49,10 @@ const MatchingSentScreen = () => {
   const auth = getAuth();
   const currentUser = auth.currentUser;
 
+  // スワイプアイテムの参照を保持
+  const [rows, setRows] = useState<Array<Swipeable | null>>([]);
+  const [openRow, setOpenRow] = useState<Swipeable | null>(null);
+
   useEffect(() => {
     if (!currentUser) {
       setError("ユーザー情報が取得できません。");
@@ -67,16 +75,7 @@ const MatchingSentScreen = () => {
           const requests = await Promise.all(
             snapshot.docs.map(async (docSnapshot) => {
               try {
-                // デバッグ用
-                console.log("Sent requests query size:", snapshot.size);
-                console.log(
-                  "Sent requests raw data:",
-                  snapshot.docs.map((doc) => doc.data())
-                );
                 const data = docSnapshot.data() as DocumentData;
-                // デバッグ用に犬のIDを出力
-                console.log(`Fetching dog with ID: ${data.dogID}`);
-                // 犬の情報を取得
                 const dogDocRef = doc(db, "dogs", data.dogID);
                 const dogDoc = await getDoc(dogDocRef);
 
@@ -86,7 +85,6 @@ const MatchingSentScreen = () => {
                 }
 
                 const dogData = dogDoc.data() as DogData;
-                console.log(`Dog data retrieved:`, dogData);  // 犬のデータを詳しくログ出力
 
                 return {
                   id: docSnapshot.id,
@@ -126,6 +124,108 @@ const MatchingSentScreen = () => {
     return () => unsubscribe();
   }, [currentUser]);
 
+  // スワイプで削除する関数
+  const deleteRequest = async (requestId: string) => {
+    Alert.alert("削除の確認", "このモフモフ申請を削除しますか？", [
+      {
+        text: "キャンセル",
+        style: "cancel",
+      },
+      {
+        text: "削除",
+        onPress: () => {
+          const deleteOperation = async () => {
+            try {
+              const db = getFirestore();
+              const requestRef = doc(db, "applies", requestId);
+              await deleteDoc(requestRef);
+              // リストから削除（Firestoreのリスナーが自動的に更新するため不要ですが、UIの応答性を高めるために）
+              setSentRequests((prevRequests) =>
+                prevRequests.filter((req) => req.id !== requestId)
+              );
+              Alert.alert("成功", "モフモフ申請を削除しました。");
+            } catch (error) {
+              console.error("Error deleting request:", error);
+              Alert.alert(
+                "エラー",
+                "リクエストの削除中にエラーが発生しました。"
+              );
+            }
+          };
+          deleteOperation();
+        },
+      },
+    ]);
+  };
+
+  // スワイプアクションをレンダリングする関数
+  const renderRightActions = (requestId: string) => {
+    return (
+      <TouchableOpacity
+        style={styles.deleteAction}
+        onPress={() => deleteRequest(requestId)}
+      >
+        <Ionicons name="trash-outline" size={24} color="#fff" />
+      </TouchableOpacity>
+    );
+  };
+
+  // スワイプした時に他の開いているスワイプを閉じる
+  const closeRow = (index: number) => {
+    if (openRow && openRow !== rows[index]) {
+      openRow.close();
+    }
+    setOpenRow(rows[index]);
+  };
+
+  const renderItem = ({
+    item,
+    index,
+  }: {
+    item: SentRequest;
+    index: number;
+  }) => (
+    <Swipeable
+      ref={(ref) => (rows[index] = ref)}
+      renderRightActions={() => renderRightActions(item.id)}
+      onSwipeableOpen={() => closeRow(index)}
+    >
+      <View style={styles.requestCard}>
+        <View style={styles.requestHeader}>
+          {item.dogImage ? (
+            <Image source={{ uri: item.dogImage }} style={styles.dogImage} />
+          ) : (
+            <View style={[styles.dogImage, styles.defaultImageContainer]}>
+              <Ionicons name="paw-outline" size={30} color="#adb5bd" />
+            </View>
+          )}
+          <View style={styles.requestInfo}>
+            <Text style={styles.dogName}>{item.dogName}</Text>
+            <Text
+              style={[
+                styles.statusText,
+                item.status === "accepted"
+                  ? styles.acceptedStatus
+                  : item.status === "rejected"
+                  ? styles.rejectedStatus
+                  : styles.pendingStatus,
+              ]}
+            >
+              {item.status === "pending"
+                ? "承認待ち"
+                : item.status === "accepted"
+                ? "承認済み"
+                : "却下されました"}
+            </Text>
+            <Text style={styles.dateText}>
+              {item.createdAt.toLocaleDateString()}
+            </Text>
+          </View>
+        </View>
+      </View>
+    </Swipeable>
+  );
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -153,40 +253,20 @@ const MatchingSentScreen = () => {
     );
   }
 
-  const renderItem = ({ item }: { item: SentRequest }) => (
-    <View style={styles.requestCard}>
-      <View style={styles.requestHeader}>
-        {item.dogImage ? (
-          <Image source={{ uri: item.dogImage }} style={styles.dogImage} />
-        ) : (
-          <View style={[styles.dogImage, styles.defaultImageContainer]}>
-            <Ionicons name="paw-outline" size={30} color="#adb5bd" />
-          </View>
-        )}
-        <View style={styles.requestInfo}>
-          <Text style={styles.dogName}>{item.dogName}</Text>
-          <Text style={styles.statusText}>
-            {item.status === "pending"
-              ? "承認待ち"
-              : item.status === "accepted"
-              ? "承認済み"
-              : "却下されました"}
-          </Text>
-          <Text style={styles.dateText}>
-            {item.createdAt.toLocaleDateString()}
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
-
   return (
     <View style={styles.container}>
+      <Text style={styles.instruction}>← スワイプで削除</Text>
       <FlatList
         data={sentRequests}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
+        onScrollBeginDrag={() => {
+          if (openRow) {
+            openRow.close();
+            setOpenRow(null);
+          }
+        }}
       />
     </View>
   );
@@ -196,6 +276,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  instruction: {
+    textAlign: "center",
+    padding: 8,
+    color: "#adb5bd",
+    backgroundColor: "#f8f9fa",
+    fontSize: 14,
   },
   loadingContainer: {
     flex: 1,
@@ -260,8 +347,16 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 14,
-    color: "#495057",
     marginBottom: 2,
+  },
+  pendingStatus: {
+    color: "#4dabf7",
+  },
+  acceptedStatus: {
+    color: "#40c057",
+  },
+  rejectedStatus: {
+    color: "#ff6b6b",
   },
   dateText: {
     fontSize: 12,
@@ -279,6 +374,15 @@ const styles = StyleSheet.create({
     color: "#ff6b6b",
     textAlign: "center",
     paddingHorizontal: 32,
+  },
+  deleteAction: {
+    backgroundColor: "#ff6b6b",
+    justifyContent: "center",
+    alignItems: "center",
+    width: 80,
+    height: "100%",
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
   },
 });
 
