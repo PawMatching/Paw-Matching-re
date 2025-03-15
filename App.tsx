@@ -14,6 +14,7 @@ import {
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "./src/config/firebase";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 type RootStackParamList = {
   Chat: {
@@ -181,10 +182,12 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <StatusBar style="auto" />
-      <NotificationHandler />
-      <RootNavigator initialAuthenticated={isAuthenticated} />
-    </NavigationContainer>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationContainer>
+        <StatusBar style="auto" />
+        <NotificationHandler />
+        <RootNavigator initialAuthenticated={isAuthenticated} />
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }

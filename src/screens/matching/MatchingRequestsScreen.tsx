@@ -29,6 +29,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { MaterialIcons } from "@expo/vector-icons";
 import { UserData } from "../../types/user";
 import { Dog } from "../../types/dog";
+import { Swipeable } from "react-native-gesture-handler";
 
 type PettingRequest = {
   id: string;
@@ -61,6 +62,10 @@ const MatchingRequestsScreen = () => {
   const auth = getAuth();
   const currentUser = auth.currentUser;
 
+  // スワイプアイテムの参照を保持
+  const [rows, setRows] = useState<Array<Swipeable | null>>([]);
+  const [openRow, setOpenRow] = useState<Swipeable | null>(null);
+
   // fetchRequestsを一箇所だけで定義
   const fetchRequests = async () => {
     if (!currentUser) {
@@ -71,10 +76,6 @@ const MatchingRequestsScreen = () => {
     try {
       const db = getFirestore();
       const appliesRef = collection(db, "applies");
-      console.log("Query params:", {
-        dogOwnerID: currentUser.uid,
-        status: "pending",
-      });
       const q = query(
         appliesRef,
         where("dogOwnerID", "==", currentUser.uid),
@@ -85,11 +86,6 @@ const MatchingRequestsScreen = () => {
       const unsubscribe = onSnapshot(
         q,
         async (querySnapshot) => {
-          console.log("Query snapshot size:", querySnapshot.size);
-          console.log(
-            "Raw data:",
-            querySnapshot.docs.map((doc) => doc.data())
-          );
           const requestsData: RequestWithUserAndDog[] = [];
 
           // すべてのドキュメント処理が終わるのを待つための配列
@@ -99,9 +95,6 @@ const MatchingRequestsScreen = () => {
                 id: docSnapshot.id,
                 ...docSnapshot.data(),
               } as PettingRequest;
-
-              // デバッグ用に犬のID表示
-              console.log("Fetching dog with ID:", requestData.dogID);
 
               // 自分の犬に対する申請のみを取得
               const dogDocRef = doc(db, "dogs", requestData.dogID);
@@ -122,9 +115,6 @@ const MatchingRequestsScreen = () => {
                 );
                 return null;
               }
-
-              // デバッグ用にユーザーのID表示
-              console.log("Fetching user with ID:", requestData.userID);
 
               // 申請者の情報を取得
               const userDocRef = doc(db, "users", requestData.userID);
@@ -158,7 +148,6 @@ const MatchingRequestsScreen = () => {
             (result) => result !== null
           ) as RequestWithUserAndDog[];
 
-          console.log("Processed requests:", validResults.length);
           setRequests(validResults);
           setIsLoading(false);
         },
@@ -201,7 +190,7 @@ const MatchingRequestsScreen = () => {
       const db = getFirestore();
       const requestRef = doc(db, "applies", request.id);
       const currentTimestamp = new Date();
-  
+
       // トランザクションで処理を行う
       await runTransaction(db, async (transaction) => {
         // 申請のステータスを更新
@@ -209,7 +198,7 @@ const MatchingRequestsScreen = () => {
           status: "accepted",
           updatedAt: currentTimestamp,
         });
-  
+
         // まず matches コレクションにドキュメントを作成
         const matchRef = doc(collection(db, "matches"));
         const matchData = {
@@ -220,9 +209,9 @@ const MatchingRequestsScreen = () => {
           status: "active",
           createdAt: currentTimestamp,
         };
-        
+
         transaction.set(matchRef, matchData);
-  
+
         // チャットルームを作成
         const chatRef = doc(collection(db, "chats"));
         const chatData = {
@@ -235,21 +224,21 @@ const MatchingRequestsScreen = () => {
           createdAt: currentTimestamp,
           lastMessage: null,
           lastMessageAt: currentTimestamp,
-          lastMessageTime: null
+          lastMessageTime: null,
         };
-        
+
         transaction.set(chatRef, chatData);
-  
+
         // matches ドキュメントに chatId を追加
         transaction.update(matchRef, {
-          chatId: chatRef.id
+          chatId: chatRef.id,
         });
       });
-  
+
       Alert.alert(
         "承認しました",
         "モフモフ申請を承認しました。チャットで詳細を話し合いましょう！",
-        [{ text: "OK", onPress: () => fetchRequests() }]
+        [{ text: "OK" }]
       );
     } catch (error) {
       console.error("Error accepting request:", error);
@@ -271,7 +260,7 @@ const MatchingRequestsScreen = () => {
       });
 
       Alert.alert("申請を断りました", "モフモフ申請を断りました。", [
-        { text: "OK", onPress: () => fetchRequests() },
+        { text: "OK" },
       ]);
     } catch (error) {
       console.error("Error rejecting request:", error);
@@ -282,49 +271,111 @@ const MatchingRequestsScreen = () => {
     }
   };
 
-  const renderRequestItem = ({ item }: { item: RequestWithUserAndDog }) => (
-    <View style={styles.requestCard}>
-      <View style={styles.requestHeader}>
-        {item.requester.profileImage ? (
-          <Image
-            source={{ uri: item.requester.profileImage }}
-            style={styles.requesterImage}
-          />
-        ) : (
-          <View style={[styles.requesterImage, styles.defaultImageContainer]}>
-            <MaterialIcons name="person" size={36} color="#adb5bd" />
-          </View>
-        )}
-        <View style={styles.requestInfo}>
-          <Text style={styles.requestTitle}>
-            {item.requester.name}さんから
-          </Text>
-          <Text style={styles.requestMessage}>{item.message}</Text>
-          {item.requester.comment && (
-            <Text style={styles.requesterComment}>
-              {item.requester.comment}
-            </Text>
+  // スワイプで削除する関数
+  const deleteRequest = async (requestId: string) => {
+    Alert.alert("削除の確認", "このモフモフ申請を削除しますか？", [
+      {
+        text: "キャンセル",
+        style: "cancel",
+      },
+      {
+        text: "削除",
+        onPress: () => {
+          const deleteOperation = async () => {
+            try {
+              const db = getFirestore();
+              const requestRef = doc(db, "applies", requestId);
+              await deleteDoc(requestRef);
+              Alert.alert("成功", "モフモフ申請を削除しました。");
+            } catch (error) {
+              console.error("Error deleting request:", error);
+              Alert.alert(
+                "エラー",
+                "リクエストの削除中にエラーが発生しました。"
+              );
+            }
+          };
+          deleteOperation();
+        },
+      },
+    ]);
+  };
+
+  // スワイプアクションをレンダリングする関数
+  const renderRightActions = (requestId: string) => {
+    return (
+      <TouchableOpacity
+        style={styles.deleteAction}
+        onPress={() => deleteRequest(requestId)}
+      >
+        <Ionicons name="trash-outline" size={24} color="#fff" />
+      </TouchableOpacity>
+    );
+  };
+
+  // スワイプした時に他の開いているスワイプを閉じる
+  const closeRow = (index: number) => {
+    if (openRow && openRow !== rows[index]) {
+      openRow.close();
+    }
+    setOpenRow(rows[index]);
+  };
+
+  const renderRequestItem = ({
+    item,
+    index,
+  }: {
+    item: RequestWithUserAndDog;
+    index: number;
+  }) => (
+    <Swipeable
+      ref={(ref) => (rows[index] = ref)}
+      renderRightActions={() => renderRightActions(item.id)}
+      onSwipeableOpen={() => closeRow(index)}
+    >
+      <View style={styles.requestCard}>
+        <View style={styles.requestHeader}>
+          {item.requester.profileImage ? (
+            <Image
+              source={{ uri: item.requester.profileImage }}
+              style={styles.requesterImage}
+            />
+          ) : (
+            <View style={[styles.requesterImage, styles.defaultImageContainer]}>
+              <MaterialIcons name="person" size={36} color="#adb5bd" />
+            </View>
           )}
+          <View style={styles.requestInfo}>
+            <Text style={styles.requestTitle}>
+              {item.requester.name}さんから
+            </Text>
+            <Text style={styles.requestMessage}>{item.message}</Text>
+            {item.requester.comment && (
+              <Text style={styles.requesterComment}>
+                {item.requester.comment}
+              </Text>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.actionButtons}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.acceptButton]}
+            onPress={() => handleAccept(item)}
+          >
+            <Text style={styles.actionButtonText}>モフモフ申請を受ける</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.rejectButton]}
+            onPress={() => handleReject(item)}
+          >
+            <Text style={[styles.actionButtonText, styles.rejectButtonText]}>
+              ごめんなさい
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
-
-      <View style={styles.actionButtons}>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.acceptButton]}
-          onPress={() => handleAccept(item)}
-        >
-          <Text style={styles.actionButtonText}>モフモフ申請を受ける</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.rejectButton]}
-          onPress={() => handleReject(item)}
-        >
-          <Text style={[styles.actionButtonText, styles.rejectButtonText]}>
-            ごめんなさい
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    </Swipeable>
   );
 
   if (isLoading) {
@@ -338,6 +389,9 @@ const MatchingRequestsScreen = () => {
 
   return (
     <View style={styles.container}>
+      {requests.length > 0 && (
+        <Text style={styles.instruction}>← スワイプで削除</Text>
+      )}
       <FlatList
         data={requests}
         renderItem={renderRequestItem}
@@ -349,6 +403,12 @@ const MatchingRequestsScreen = () => {
             <Text style={styles.emptyText}>新しいモフモフ申請はありません</Text>
           </View>
         }
+        onScrollBeginDrag={() => {
+          if (openRow) {
+            openRow.close();
+            setOpenRow(null);
+          }
+        }}
       />
     </View>
   );
@@ -370,6 +430,13 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: 16,
+  },
+  instruction: {
+    textAlign: "center",
+    padding: 8,
+    color: "#adb5bd",
+    backgroundColor: "#f8f9fa",
+    fontSize: 14,
   },
   requestCard: {
     backgroundColor: "#fff",
@@ -455,6 +522,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#f1f3f5",
     justifyContent: "center",
     alignItems: "center",
+  },
+  deleteAction: {
+    backgroundColor: "#ff6b6b",
+    justifyContent: "center",
+    alignItems: "center",
+    width: 70,
   },
 });
 
