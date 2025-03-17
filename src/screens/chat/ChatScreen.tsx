@@ -166,6 +166,9 @@ const ChatScreen = () => {
               lastMessageAt: Timestamp.now(),
               lastMessage: null,
               lastMessageTime: null,
+              createdAt: Timestamp.now(),
+              status: "active",
+              expiresAt: Timestamp.now(),
             };
 
             await setDoc(newChatRef, fullChatData);

@@ -28,6 +28,10 @@ export interface ChatData {
   lastMessageAt: Timestamp;
   lastMessage: string | null;
   lastMessageTime: Timestamp | null;
+  createdAt: Timestamp; // 追加
+  status: "active" | "closed"; // 追加
+  expiresAt: Timestamp; // 追加
+  closedAt?: Timestamp; // 追加（オプショナル）
 }
 
 export interface ChatWithDetails extends ChatData {

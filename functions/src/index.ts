@@ -339,3 +339,118 @@ export const cleanupPendingRequests = functions.pubsub
       return null;
     }
   });
+
+// チャット作成時に2時間後の自動クローズを設定
+export const scheduleChatExpiration = functions.firestore
+  .document("chats/{chatId}")
+  .onCreate(async (snap, context) => {
+    const chatData = snap.data();
+    if (!chatData) return;
+
+    const chatId = context.params.chatId;
+
+    try {
+    // 現在のタイムスタンプを取得
+      const createdAt = chatData.createdAt || admin.firestore.Timestamp.now();
+
+      // 2時間後の時刻を計算
+      const expiresAt = new Date(createdAt.toDate());
+      expiresAt.setHours(expiresAt.getHours() + 2);
+
+      // チャットドキュメントを更新して有効期限を追加
+      await admin.firestore().collection("chats").doc(chatId).update({
+        expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
+        status: "active", // 初期状態
+      });
+
+      logger.info(`チャット ${chatId} の有効期限を設定しました: ${expiresAt}`);
+
+      // Pub/Subメッセージを予約して2時間後にチャットを閉じる
+      const message = {
+        chatId: chatId,
+      };
+
+      // トピックに発行（これはオプション1 - Pub/Subを使用する場合）
+      // const topic = "expire-chat";
+      // await admin.pubsub().topic(topic).publishMessage({ json: message });
+
+      // オプション2: スケジュールされたタスクを使用（ここではFirestore自体を使用）
+      await admin.firestore().collection("scheduledTasks").add({
+        type: "chatExpiration",
+        chatId: chatId,
+        executeAt: admin.firestore.Timestamp.fromDate(expiresAt),
+        status: "pending",
+      });
+    } catch (error) {
+      logger.error(`チャット ${chatId} の有効期限設定中にエラーが発生しました:`, error);
+    }
+  });
+
+// スケジュールされたタスクを処理する関数（5分ごとに実行）
+export const processScheduledTasks = functions.pubsub
+  .schedule("every 5 minutes")
+  .onRun(async () => {
+    const now = admin.firestore.Timestamp.now();
+
+    try {
+      // 実行時刻が来たタスクを検索
+      const tasksSnapshot = await admin.firestore()
+        .collection("scheduledTasks")
+        .where("status", "==", "pending")
+        .where("executeAt", "<=", now)
+        .get();
+
+      if (tasksSnapshot.empty) {
+        logger.info("実行すべきスケジュールタスクはありません");
+        return null;
+      }
+
+      const batch = admin.firestore().batch();
+      const promises = [];
+
+      // 各タスクを処理
+      for (const taskDoc of tasksSnapshot.docs) {
+        const task = taskDoc.data();
+
+        if (task.type === "chatExpiration" && task.chatId) {
+          // チャットを閉じる処理
+          // eslint-disable-next-line max-len
+          const chatRef = admin.firestore().collection("chats").doc(task.chatId);
+          promises.push(
+            // チャットの状態を確認
+            chatRef.get().then((chatDoc) => {
+              if (chatDoc.exists) {
+                // チャットを閉じる（状態を変更）
+                batch.update(chatRef, {
+                  status: "closed",
+                  closedAt: now,
+                });
+                // タスクをcompletedにする
+                batch.update(taskDoc.ref, {
+                  status: "completed",
+                  processedAt: now,
+                });
+                logger.info(`チャット ${task.chatId} を自動的に閉じました`);
+              } else {
+                // チャットが見つからない場合
+                batch.update(taskDoc.ref, {
+                  status: "failed",
+                  error: "チャットが見つかりません",
+                  processedAt: now,
+                });
+              }
+            })
+          );
+        }
+      }
+      // すべてのチャット確認が完了するのを待つ
+      await Promise.all(promises);
+      // バッチ更新を実行
+      await batch.commit();
+      logger.info(`${tasksSnapshot.size}件のスケジュールタスクを処理しました`);
+      return null;
+    } catch (error) {
+      logger.error("スケジュールタスク処理中にエラーが発生しました:", error);
+      return null;
+    }
+  });
