@@ -282,10 +282,13 @@ const formatRemainingTime = useCallback((expiresAt: Timestamp) => {
     }
     
     // 残り時間を分と秒で表示
-    const diffMinutes = Math.floor(diffMs / 60000);
-    const diffSeconds = Math.floor((diffMs % 60000) / 1000);
-    
-    return `${diffMinutes}分${diffSeconds}秒`;
+    const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
+    const diffMinutes = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000));
+    if (diffHours > 0) {
+      return `${diffHours}時間${diffMinutes}分`;
+    } else {
+      return `${diffMinutes}分`;
+    }
   } catch (error) {
     console.error("Error formatting remaining time:", error);
     return "計算中...";
