@@ -171,10 +171,17 @@ const ChatListScreen = () => {
   );
 
   const renderChatItem = useCallback(
-    ({ item }: { item: ChatWithDetails }) => (
-      <TouchableOpacity
-        style={styles.chatItem}
-        onPress={() => navigateToChat(item)}
+    ({ item }: { item: ChatWithDetails }) => {
+      // チャットの有効期限を確認
+      const isExpired =
+        item.status === "closed" ||
+        (item.expiresAt && item.expiresAt.toDate() < new Date());
+
+      return (
+        <TouchableOpacity
+          style={[styles.chatItem, isExpired && styles.expiredChatItem]} //期限切れスタイル
+          onPress={() => navigateToChat(item)}
+          disabled={isExpired}
       >
         {!item.isUserDogOwner ? (
           <View style={styles.avatarContainer}>
@@ -213,16 +220,26 @@ const ChatListScreen = () => {
             <Text style={styles.primaryName}>{item.otherUserName}</Text>
           )}
 
-          <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.lastMessage || "会話を始めましょう！"}
+          <Text style={[styles.lastMessage, isExpired && styles.expiredText]} 
+                numberOfLines={1}
+                >
+            {isExpired
+            ?"このチャットはクローズ済みです"
+            : item.lastMessage || "会話を始めましょう！"}
           </Text>
+          {!isExpired && item.expiresAt && (
+            <Text style={styles.expirationText}>
+              残り時間: {formatRemainingTime(item.expiresAt)}
+            </Text>
+          )}
         </View>
 
         {item.lastMessageAt && (
           <Text style={styles.timeStamp}>{formatTime(item.lastMessageAt)}</Text>
         )}
       </TouchableOpacity>
-    ),
+      );
+    },
     [navigateToChat]
   );
 
@@ -251,6 +268,32 @@ const ChatListScreen = () => {
       return "";
     }
   }, []);
+
+  // 残り時間のフォーマット関数を追加
+const formatRemainingTime = useCallback((expiresAt: Timestamp) => {
+  try {
+    const now = new Date();
+    const expireDate = expiresAt.toDate();
+    const diffMs = expireDate.getTime() - now.getTime();
+    
+    // 残り時間が0以下の場合は「終了」と表示
+    if (diffMs <= 0) {
+      return "終了";
+    }
+    
+    // 残り時間を分と秒で表示
+    const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
+    const diffMinutes = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000));
+    if (diffHours > 0) {
+      return `${diffHours}時間${diffMinutes}分`;
+    } else {
+      return `${diffMinutes}分`;
+    }
+  } catch (error) {
+    console.error("Error formatting remaining time:", error);
+    return "計算中...";
+  }
+}, []);
 
   if (loading) {
     return (
@@ -402,6 +445,20 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: "center",
   },
+  expiredChatItem: {
+    opacity: 0.6,
+    backgroundColor: "#f8f9fa",
+  },
+  expiredText: {
+    fontStyle: "italic",
+    color: "#adb5bd",
+  },
+  expirationText: {
+    fontSize: 12,
+    color: "#fa5252",
+    marginTop: 4,
+  },
+  
 });
 
 export default ChatListScreen;

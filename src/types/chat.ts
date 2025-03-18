@@ -18,6 +18,15 @@ export interface Message {
   read: boolean;
 }
 
+// チャットのステータスを定数として定義
+export const CHAT_STATUS = {
+  ACTIVE: "active",
+  CLOSED: "closed",
+} as const;
+
+// チャットステータスの型を定義
+export type ChatStatus = (typeof CHAT_STATUS)[keyof typeof CHAT_STATUS];
+
 export interface ChatData {
   id: string;
   chatID: string;
@@ -28,10 +37,10 @@ export interface ChatData {
   lastMessageAt: Timestamp;
   lastMessage: string | null;
   lastMessageTime: Timestamp | null;
-  createdAt: Timestamp; // 追加
-  status: "active" | "closed"; // 追加
-  expiresAt: Timestamp; // 追加
-  closedAt?: Timestamp; // 追加（オプショナル）
+  createdAt: Timestamp;
+  status: ChatStatus;
+  expiresAt: Timestamp;
+  closedAt?: Timestamp;
 }
 
 export interface ChatWithDetails extends ChatData {
