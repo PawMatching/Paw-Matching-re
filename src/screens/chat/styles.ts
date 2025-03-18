@@ -133,4 +133,29 @@ export const styles = StyleSheet.create({
   sendButtonDisabled: {
     opacity: 0.5,
   },
+  timerContainer: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: "#f8f9fa",
+    borderBottomWidth: 1,
+    borderBottomColor: "#dee2e6",
+    alignItems: "center",
+  },
+  timerText: {
+    fontSize: 14,
+    color: "#495057",
+    fontWeight: "500",
+  },
+  expiredBanner: {
+    fontSize: 14,
+    color: "#fa5252",
+    fontWeight: "500",
+  },
+  disabledInputContainer: {
+    backgroundColor: "#f8f9fa",
+  },
+  disabledInput: {
+    backgroundColor: "#e9ecef",
+    color: "#adb5bd",
+  },
 });

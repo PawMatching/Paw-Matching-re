@@ -48,6 +48,9 @@ const ChatScreen = () => {
   const [otherUserName, setOtherUserName] = useState<string>("");
   const [dogName, setDogName] = useState<string>("");
   const [isOtherUserOwner, setIsOtherUserOwner] = useState<boolean>(false);
+  const [isExpired, setIsExpired] = useState<boolean>(false);
+  const [remainingTime, setRemainingTime] = useState<string>("");
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
   const auth = getAuth();
@@ -204,6 +207,56 @@ const ChatScreen = () => {
       isMounted = false;
     };
   }, [currentUser, chatId, matchId, dogId, db, navigation]);
+
+  // useEffect内でチャットの有効期限を監視
+  useEffect(() => {
+    if (!chatData || !chatData.expiresAt) return;
+
+    // 有効期限切れかどうかの初期チェック
+    const checkExpiration = () => {
+      if (chatData.status === "closed") {
+        setIsExpired(true);
+        return true;
+      }
+
+      const now = new Date();
+      const expireDate = chatData.expiresAt.toDate();
+
+      if (now >= expireDate) {
+        setIsExpired(true);
+        return true;
+      }
+
+      // 残り時間を計算して表示
+      const diffMs = expireDate.getTime() - now.getTime();
+      const diffMinutes = Math.floor(diffMs / 60000);
+      const diffSeconds = Math.floor((diffMs % 60000) / 1000);
+      setRemainingTime(`${diffMinutes}分${diffSeconds}秒`);
+
+      return false;
+    };
+
+    // 初回チェック
+    const isInitiallyExpired = checkExpiration();
+
+    // 既に期限切れならタイマーは不要
+    if (isInitiallyExpired) return;
+
+    // 1秒ごとに残り時間を更新
+    timerRef.current = setInterval(() => {
+      const isNowExpired = checkExpiration();
+      if (isNowExpired && timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    }, 1000);
+
+    // クリーンアップ関数
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [chatData]);
 
   // メッセージをリアルタイムで監視
   useEffect(() => {
@@ -380,6 +433,20 @@ const ChatScreen = () => {
           </View>
         ) : (
           <>
+            {/* メッセージリストの上部に残り時間バナーを表示 */}
+            {!loading && (
+              <View style={styles.timerContainer}>
+                {isExpired ? (
+                  <Text style={styles.expiredBanner}>
+                    このチャットは終了しました
+                  </Text>
+                ) : (
+                  <Text style={styles.timerText}>
+                    残り時間: {remainingTime}
+                  </Text>
+                )}
+              </View>
+            )}
             <FlatList
               ref={flatListRef}
               data={messages}
@@ -395,28 +462,30 @@ const ChatScreen = () => {
           style={[
             styles.inputContainer,
             Platform.OS === "ios" && { paddingBottom: 0 },
+            isExpired && styles.disabledInputContainer // 期限切れ時のスタイルを追加
           ]}
         >
           <TextInput
-            style={styles.input}
+            style={[styles.input, isExpired && styles.disabledInput]}
             value={newMessage}
             onChangeText={setNewMessage}
-            placeholder="メッセージを入力..."
-            placeholderTextColor="#adb5bd"
+            placeholder={isExpired ? "チャットは終了しました" : "メッセージを入力..."}
+            placeholderTextColor={isExpired ? "#adb5bd" : "#adb5bd"}
             multiline
+            editable={!isExpired} // 期限切れの場合は編集不可にする
           />
           <TouchableOpacity
             style={[
               styles.sendButton,
-              !newMessage.trim() && styles.sendButtonDisabled,
+              (!newMessage.trim() || isExpired) && styles.sendButtonDisabled,
             ]}
             onPress={sendMessage}
-            disabled={!newMessage.trim()}
+            disabled={!newMessage.trim() || isExpired}
           >
             <Ionicons
               name="send"
               size={24}
-              color={newMessage.trim() ? "#4dabf7" : "#adb5bd"}
+              color={newMessage.trim() && !isExpired ? "#4dabf7" : "#adb5bd"}
             />
           </TouchableOpacity>
         </View>
