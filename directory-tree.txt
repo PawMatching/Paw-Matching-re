@@ -29,12 +29,21 @@ PAW-MATCHING-RE/
 │   │   ├── auth/
 │   │   │   ├── LoginScreen.tsx
 │   │   │   └── SignUpScreen.tsx
-│   │   ├──  home/
-│   │   │    └── HomeScreen.tsx
-│   │   └──  search/
-│   │        ├── DogDetailScreen.tsx
-│   │        ├── SearchDogsScreen.tsx
-│   │        └── SearchMainScreen.tsx
+│   │   ├── chat/
+│   │   │   └── ChatScreen.tsx
+│   │   ├── home/
+│   │   │   └── HomeScreen.tsx
+│   │   ├── matching/
+│   │   │   └── MatchingScreen.tsx
+│   │   └── search/
+│   │       ├── DogDetailScreen.tsx
+│   │       ├── SearchDogsScreen.tsx
+│   │       └── SearchMainScreen.tsx
+│   ├── types/
+│   │   ├── dog.ts
+│   │   └── user.ts
+│   └── utils/
+│       └── helpers.ts
 ├── types/
 │   ├── dog.ts
 │   ├── env.d.ts
