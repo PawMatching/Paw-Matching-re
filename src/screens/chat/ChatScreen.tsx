@@ -131,7 +131,7 @@ const ChatScreen = () => {
 
             // 新しいチャットドキュメントを作成
             const newChatRef = doc(collection(db, "chats"));
-            // テスト用に2分後の日時を計算
+            // 2時間後の日時を計算
             const twoHoursLater = new Date();
             twoHoursLater.setHours(twoHoursLater.getHours() + 2);
 
@@ -183,65 +183,69 @@ const ChatScreen = () => {
     };
   }, [currentUser, chatId, matchId, dogId, db, navigation, otherUserId]);
 
-// チャットの有効期限を監視
-useEffect(() => {
-  if (!chatData) return;
+  // チャットの有効期限を監視
+  useEffect(() => {
+    if (!chatData) return;
 
-  const checkStatus = () => {
-    // すでにクローズ済みかチェック
-    if (chatData.status === CHAT_STATUS.CLOSED) {
-      setIsExpired(true);
-      return;
-    }
+    const checkStatus = () => {
+      // すでにクローズ済みかチェック
+      if (chatData.status === CHAT_STATUS.CLOSED) {
+        setIsExpired(true);
+        return;
+      }
 
-    const now = new Date();
-    let expireDate: Date;
+      const now = new Date();
+      let expireDate: Date;
 
-    // 有効期限を取得または計算
-    if (chatData.expiresAt) {
-      // 既に設定されている場合
-      expireDate = chatData.expiresAt.toDate();
-      console.log("既存のexpiresAtを使用:", expireDate);
-    } else if (chatData.createdAt) {
-      // chatData.createdAtから2分後を計算（テスト用）
-      expireDate = new Date(chatData.createdAt.toDate());
-      expireDate.setMinutes(expireDate.getMinutes() + 2);
-      console.log("createdAtから計算したexpiresAt:", expireDate);
-      
-      // Firestoreにも保存
-      const chatRef = doc(db, "chats", chatData.id);
-      updateDoc(chatRef, {
-        expiresAt: Timestamp.fromDate(expireDate)
-      }).catch(err => console.error("expiresAtの更新に失敗:", err));
-    } else {
-      // どちらもない場合は現在から2分後
-      expireDate = new Date();
-      expireDate.setMinutes(expireDate.getMinutes() + 2);
-      console.log("現在時刻から計算したexpiresAt:", expireDate);
-    }
+      // 有効期限を取得
+      if (chatData.expiresAt) {
+        // 既に設定されている場合
+        expireDate = chatData.expiresAt.toDate();
+      } else if (chatData.createdAt) {
+        // createdAtから2時間後を計算
+        expireDate = new Date(chatData.createdAt.toDate());
+        expireDate.setHours(expireDate.getHours() + 2);
 
-    // 期限切れかチェック
-    if (now >= expireDate) {
-      console.log("チャット期限切れ:", now, expireDate);
-      setIsExpired(true);
-      
-      // Firestoreも更新
-      const chatRef = doc(db, "chats", chatData.id);
-      updateDoc(chatRef, {
-        status: CHAT_STATUS.CLOSED,
-        closedAt: serverTimestamp()
-      }).catch(err => console.error("チャットクローズの更新失敗:", err));
-      
-      return;
-    }
+        // Firestoreにも保存
+        const chatRef = doc(db, "chats", chatData.id);
+        updateDoc(chatRef, {
+          expiresAt: Timestamp.fromDate(expireDate),
+        }).catch((err) => console.error("expiresAtの更新に失敗:", err));
+      } else {
+        // どちらもない場合は現在から2時間後
+        expireDate = new Date();
+        expireDate.setHours(expireDate.getHours() + 2);
+      }
 
+      // 期限切れかチェック
+      if (now >= expireDate) {
+        setIsExpired(true);
+
+        // Firestoreも更新
+        const chatRef = doc(db, "chats", chatData.id);
+        updateDoc(chatRef, {
+          status: CHAT_STATUS.CLOSED,
+          closedAt: serverTimestamp(),
+        }).catch((err) => console.error("チャットクローズの更新失敗:", err));
+
+        return;
+      }
 
       // 残り時間を計算して表示
       const diffMs = expireDate.getTime() - now.getTime();
       const diffMinutes = Math.floor(diffMs / 60000);
       const diffSeconds = Math.floor((diffMs % 60000) / 1000);
 
-      const timeStr = `${diffMinutes}分${diffSeconds}秒`;
+      // 1時間以上の場合は時間も表示
+      let timeStr = "";
+      if (diffMinutes >= 60) {
+        const hours = Math.floor(diffMinutes / 60);
+        const minutes = diffMinutes % 60;
+        timeStr = `${hours}時間${minutes}分`;
+      } else {
+        timeStr = `${diffMinutes}分${diffSeconds}秒`;
+      }
+
       setRemainingTime(timeStr);
       setIsExpired(false);
       return false;
@@ -463,7 +467,9 @@ useEffect(() => {
                   このチャットは終了しました
                 </Text>
               ) : (
-                <Text style={styles.timerText}>残り時間：{remainingTime || "計算中…"}</Text>
+                <Text style={styles.timerText}>
+                  残り時間：{remainingTime || "計算中…"}
+                </Text>
               )}
             </View>
             <FlatList
