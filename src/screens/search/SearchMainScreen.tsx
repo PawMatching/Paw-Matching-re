@@ -1,12 +1,13 @@
 // src/screens/search/SearchMainScreen.tsx
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { SearchStackParamList } from "../../navigation/types";
+import {
+  NavigationProp,
+  ParamListBase,
+  useNavigation,
+} from "@react-navigation/native";
 
-type SearchScreenNavigationProp =
-  NativeStackNavigationProp<SearchStackParamList>;
+type SearchScreenNavigationProp = NavigationProp<ParamListBase>;
 
 const SearchMainScreen = () => {
   const navigation = useNavigation<SearchScreenNavigationProp>();
@@ -15,7 +16,7 @@ const SearchMainScreen = () => {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.searchButton}
-        onPress={() => navigation.navigate("SearchMain")}
+        onPress={() => navigation.navigate("SearchDogs")}
       >
         <Text style={styles.searchButtonText}>近くのわんちゃんを探す</Text>
       </TouchableOpacity>
@@ -28,20 +29,22 @@ const SearchMainScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: "#fff",
-    padding: 16,
   },
   searchButton: {
-    backgroundColor: "#4dabf7",
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 16,
+    backgroundColor: "#FF9500",
+    padding: 15,
+    borderRadius: 25,
+    width: "80%",
+    alignItems: "center",
+    marginBottom: 20,
   },
   searchButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
-    textAlign: "center",
   },
 });
 

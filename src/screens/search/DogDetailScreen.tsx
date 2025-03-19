@@ -128,7 +128,7 @@ const DogDetailScreen = () => {
         userID: currentUser.uid,
         dogID: dog.id,
         dogOwnerID: dog.userID,
-        dog: dog
+        dog: dog,
       });
 
       const appliesCollectionRef = collection(db, "applies");
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   distanceBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#4dabf7",
+    backgroundColor: "#FF9500",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   primaryButton: {
-    backgroundColor: "#4dabf7",
+    backgroundColor: "#FF9500",
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,

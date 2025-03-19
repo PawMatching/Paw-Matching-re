@@ -28,7 +28,7 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { Dog } from "../../types/dog";
-
+import { db } from "../../config/firebase";
 // 2点間の距離を計算する関数（ハーバーサイン公式）
 const calculateDistance = (
   lat1: number,
@@ -78,28 +78,26 @@ const SearchDogsScreen = ({
     }
   }, [isFocused]);
 
-  // 近くの犬を検索する関数
-  const findNearbyDogs = async () => {
-    setIsLoading(true);
-
+  // 位置情報を取得する関数
+  const getCurrentLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-
       if (status !== "granted") {
         Alert.alert(
           "位置情報が必要です",
           "近くのわんちゃんを見つけるには位置情報へのアクセスを許可してください。"
         );
-        setIsLoading(false);
-        return;
+        return null;
       }
 
-      const currentLocation = await Location.getCurrentPositionAsync({
+      const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
-      const { latitude, longitude } = currentLocation.coords;
+
+      const { latitude, longitude } = location.coords;
       setUserLocation({ latitude, longitude });
 
+      // 位置情報をデータベースに保存
       if (currentUser) {
         const db = getDatabase();
         const userLocationRef = ref(db, `locations/users/${currentUser.uid}`);
@@ -110,67 +108,77 @@ const SearchDogsScreen = ({
         });
       }
 
-      // Firestoreから直接お散歩中の犬を検索
-      const dbFirestore = getFirestore();
-      const dogsRef = collection(dbFirestore, "dogs");
-      const walkingDogsQuery = query(dogsRef, where("isWalking", "==", true));
+      return { latitude, longitude };
+    } catch (error) {
+      console.error("位置情報の取得に失敗しました:", error);
+      Alert.alert(
+        "エラー",
+        "位置情報の取得に失敗しました。もう一度お試しください。"
+      );
+      return null;
+    }
+  };
 
-      console.log("Searching for walking dogs...");
-      const querySnapshot = await getDocs(walkingDogsQuery);
-      console.log(`Found ${querySnapshot.size} walking dogs in Firestore`);
-
+  // 近くの犬を検索する関数
+  const findNearbyDogs = async () => {
+    try {
+      setIsLoading(true);
       const nearbyDogsArray: Dog[] = [];
 
-      querySnapshot.forEach((doc) => {
-        const dogData = doc.data();
-        console.log("Processing dog:", { id: doc.id, ...dogData });
+      // 位置情報を取得
+      const location = await getCurrentLocation();
+      if (!location) {
+        return;
+      }
 
-        // 位置情報がない場合はスキップ
-        if (!dogData.latitude || !dogData.longitude) {
-          console.log(`Dog ${doc.id} has no location data, skipping...`);
-          return;
+      // お散歩中の犬を検索
+      const querySnapshot = await getDocs(
+        query(collection(db, "dogs"), where("isWalking", "==", true))
+      );
+
+      // 検索結果の処理
+      for (const doc of querySnapshot.docs) {
+        const dogData = doc.data();
+        const dogLocation = dogData.location;
+
+        if (!dogLocation) {
+          continue;
         }
 
         const distance = calculateDistance(
-          latitude,
-          longitude,
-          dogData.latitude,
-          dogData.longitude
+          location.latitude,
+          location.longitude,
+          dogLocation.latitude,
+          dogLocation.longitude
         );
-        console.log(`Distance to dog ${doc.id}: ${distance}km`);
 
         if (distance <= searchRadius) {
-          console.log(`Dog ${doc.id} is within search radius`);
           nearbyDogsArray.push({
             id: doc.id,
-            dogname: dogData.dogname || "", // dognameフィールドを使用
+            dogname: dogData.dogname || "",
             sex: dogData.sex || "male",
             profileImage: dogData.profileImage || "",
             age: dogData.age || 0,
             likes: dogData.likes || "",
             notes: dogData.notes || "",
-            distance: distance.toFixed(1),
-            latitude: dogData.latitude,
-            longitude: dogData.longitude,
-            isWalking: dogData.isWalking,
-            userID: dogData.userID,
-            createdAt: dogData.createdAt,
-            updatedAt: dogData.updatedAt,
-          } as Dog);
-        } else {
-          console.log(`Dog ${doc.id} is too far (${distance}km)`);
+            distance: distance.toString(),
+            latitude: dogLocation.latitude,
+            longitude: dogLocation.longitude,
+            isWalking: dogData.isWalking || false,
+            userID: dogData.userID || "",
+            createdAt: dogData.createdAt || new Date().toISOString(),
+            updatedAt: dogData.updatedAt || new Date().toISOString(),
+          });
         }
-      });
+      }
 
-      console.log(`Found ${nearbyDogsArray.length} nearby dogs`);
-
-      nearbyDogsArray.sort(
-        (a, b) => parseFloat(a.distance || "0") - parseFloat(b.distance || "0")
-      );
       setNearbyDogs(nearbyDogsArray);
     } catch (error) {
-      console.error("Error finding nearby dogs:", error);
-      Alert.alert("エラー", "近くのわんちゃんを検索中にエラーが発生しました。");
+      console.error("近くの犬の検索に失敗しました:", error);
+      Alert.alert(
+        "エラー",
+        "近くの犬の検索に失敗しました。もう一度お試しください。"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -215,6 +223,9 @@ const SearchDogsScreen = ({
 
   const renderDogItem = ({ item }: { item: Dog }) => {
     const isApplied = appliedDogIds[item.id] || false;
+    const distance = item.distance
+      ? parseFloat(item.distance).toFixed(1)
+      : "0.0";
 
     return (
       <TouchableOpacity
@@ -231,7 +242,7 @@ const SearchDogsScreen = ({
           <Text style={styles.dogDetail}>
             {item.sex === "male" ? "♂ オス" : "♀ メス"} • {item.age}歳
           </Text>
-          <Text style={styles.dogDistance}>{item.distance}km先</Text>
+          <Text style={styles.dogDistance}>{distance}km先</Text>
           <Text style={styles.dogNotes} numberOfLines={1}>
             {item.notes}
           </Text>
@@ -308,7 +319,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   searchButton: {
-    backgroundColor: "#4dabf7",
+    backgroundColor: "#FF9500",
     padding: 16,
     borderRadius: 8,
     marginBottom: 16,
@@ -380,7 +391,7 @@ const styles = StyleSheet.create({
   },
   dogDistance: {
     fontSize: 14,
-    color: "#4dabf7",
+    color: "#FF9500",
     marginBottom: 4,
   },
   dogNotes: {
@@ -392,7 +403,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 8,
     right: 8,
-    backgroundColor: "#ff6b6b",
+    backgroundColor: "#FF9500",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,

@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   pendingStatus: {
-    color: "#4dabf7",
+    color: "#FF9500",
   },
   acceptedStatus: {
     color: "#40c057",

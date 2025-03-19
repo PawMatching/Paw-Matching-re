@@ -19,7 +19,7 @@ const MatchingMainScreen = () => {
         onPress={() => navigation.navigate("MatchingRequests")}
       >
         <View style={styles.menuContent}>
-          <Ionicons name="heart" size={24} color="#4dabf7" />
+          <Ionicons name="heart" size={24} color="#FF9500" />
           <Text style={styles.menuText}>モフモフ申請</Text>
         </View>
         <Ionicons name="chevron-forward" size={24} color="#adb5bd" />
@@ -30,7 +30,7 @@ const MatchingMainScreen = () => {
         onPress={() => navigation.navigate("MatchingSent")}
       >
         <View style={styles.menuContent}>
-          <Ionicons name="paper-plane" size={24} color="#4dabf7" />
+          <Ionicons name="paper-plane" size={24} color="#FF9500" />
           <Text style={styles.menuText}>送信したリクエスト</Text>
         </View>
         <Ionicons name="chevron-forward" size={24} color="#adb5bd" />

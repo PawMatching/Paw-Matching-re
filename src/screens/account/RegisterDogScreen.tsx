@@ -28,6 +28,7 @@ import {
   collection,
   addDoc,
   getDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuthState } from "../../hooks/useAuthState";
@@ -87,42 +88,21 @@ const RegisterDogScreen = () => {
     return true;
   };
 
-  // uploadImage関数の修正: dogIdを使用
   const uploadImage = async (uri: string, dogId: string) => {
     try {
-      console.log("画像アップロード開始:", uri);
-      console.log("dogId:", dogId);
-
+      // 画像アップロード開始
       const response = await fetch(uri);
       const blob = await response.blob();
-
-      // dogIdを使用してストレージパスを設定
       const storageRef = ref(storage, `dogs/${dogId}/profile/profileImage`);
-      console.log("アップロード先パス:", `dogs/${dogId}/profile/profileImage`);
-
-      // アップロード処理
-      console.log("uploadBytes開始...");
       const uploadTask = await uploadBytes(storageRef, blob);
-      console.log("uploadBytes完了:", uploadTask);
-
-      // URLの取得
-      console.log("getDownloadURL開始...");
       const downloadURL = await getDownloadURL(uploadTask.ref);
-      console.log("getDownloadURL完了:", downloadURL);
-
       return downloadURL;
     } catch (error) {
-      console.error("画像アップロード処理エラー（詳細）:", error);
-      if (error instanceof Error) {
-        console.error("エラーメッセージ:", error.message);
-        console.error("エラー名:", error.name);
-        console.error("エラースタック:", error.stack);
-      }
+      console.error("画像のアップロードに失敗しました:", error);
       throw error;
     }
   };
 
-  // handleRegister関数の修正: dogIdを正しく取得して使用
   const handleRegister = async () => {
     if (!user) {
       Alert.alert("エラー", "ログインが必要です");
@@ -570,7 +550,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   registerButton: {
-    backgroundColor: "#f9a8a8",
+    backgroundColor: "#FF9500",
     borderRadius: 25,
     paddingVertical: 15,
     width: "100%",

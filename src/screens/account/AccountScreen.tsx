@@ -166,7 +166,7 @@ const AccountScreen = () => {
       {/* ユーザープロフィールセクション */}
       <View style={styles.profileSection}>
         <View style={styles.profileHeader}>
-          <Text style={styles.sectionTitle}>ユーザープロフィール</Text>
+          <Text style={styles.sectionTitle}>ユーザー</Text>
           <TouchableOpacity
             style={styles.editButton}
             onPress={handleEditUserProfile}
@@ -196,7 +196,7 @@ const AccountScreen = () => {
       {userData?.isOwner && (
         <View style={styles.profileSection}>
           <View style={styles.profileHeader}>
-            <Text style={styles.sectionTitle}>犬のプロフィール</Text>
+            <Text style={styles.sectionTitle}>わんちゃん</Text>
             <TouchableOpacity
               style={styles.editButton}
               onPress={handleEditDogProfile}
@@ -246,7 +246,7 @@ const AccountScreen = () => {
           style={[styles.actionButton, styles.logoutButton]}
           onPress={handleLogout}
         >
-          <MaterialIcons name="logout" size={24} color="#ff6b6b" />
+          <MaterialIcons name="logout" size={24} color="#fff" />
           <Text style={[styles.actionText, styles.logoutText]}>ログアウト</Text>
         </TouchableOpacity>
       </View>
@@ -352,15 +352,15 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   logoutButton: {
-    borderColor: "#ffecec",
-    backgroundColor: "#fff5f5",
+    backgroundColor: "#FF9500",
+    borderColor: "#FF9500",
   },
   actionText: {
     fontSize: 16,
     marginLeft: 12,
   },
   logoutText: {
-    color: "#ff6b6b",
+    color: "#fff",
   },
 });
 

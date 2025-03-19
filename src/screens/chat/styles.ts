@@ -54,7 +54,7 @@ export const styles = StyleSheet.create({
     marginTop: 24,
     paddingVertical: 12,
     paddingHorizontal: 24,
-    backgroundColor: "#4dabf7",
+    backgroundColor: "#FF9500",
     borderRadius: 8,
   },
   backButtonText: {
@@ -81,7 +81,7 @@ export const styles = StyleSheet.create({
     borderRadius: 16,
   },
   userMessageBubble: {
-    backgroundColor: "#4dabf7",
+    backgroundColor: "#FF9500",
   },
   otherMessageBubble: {
     backgroundColor: "#f1f3f5",

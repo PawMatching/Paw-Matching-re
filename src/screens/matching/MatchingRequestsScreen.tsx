@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   acceptButton: {
-    backgroundColor: "#4dabf7",
+    backgroundColor: "#FF9500",
   },
   rejectButton: {
     backgroundColor: "#fff",

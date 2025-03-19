@@ -138,8 +138,8 @@ export default function HomeScreen() {
     setRemainingTime(null);
   };
 
-   // コンポーネントのクリーンアップ
-   useEffect(() => {
+  // コンポーネントのクリーンアップ
+  useEffect(() => {
     return () => {
       if (timer) {
         clearInterval(timer);
@@ -147,199 +147,141 @@ export default function HomeScreen() {
     };
   }, [timer]);
 
-    // 残り時間を更新する関数
-const updateRemainingTime = async () => {
-  try {
-    if (!userDog) return;
-    
-    const dogDocRef = doc(db, "dogs", userDog.id);
-    const dogDoc = await getDoc(dogDocRef);
-    
-    if (dogDoc.exists()) {
-      const dogData = dogDoc.data();
-      if (dogData.lastWalkingStatusUpdate && dogData.isWalking) {
-        // FirestoreのタイムスタンプをDateオブジェクトに変換
-        const lastUpdate = dogData.lastWalkingStatusUpdate.toDate ? 
-                          dogData.lastWalkingStatusUpdate.toDate() : 
-                          new Date(dogData.lastWalkingStatusUpdate);
-        
-        // 残り時間を計算（散歩開始からの経過時間をもとに）
-        const elapsedMinutes = Math.floor((new Date().getTime() - lastUpdate.getTime()) / 60000);
-        const remaining = Math.max(0, walkingTimeLimit - elapsedMinutes);
-        
-        console.log(`残り時間更新: ${remaining}分（経過: ${elapsedMinutes}分）`);
-        
-        setRemainingTime(remaining);
-        
-        // 残り時間が0になったら散歩を終了（オプション）
-        if (remaining <= 0 && isWalking) {
-          // ここに自動終了処理を追加することもできます
-          // あえてサーバーサイドの処理に任せる場合はここでの更新は不要
+  // 残り時間を更新する関数
+  const updateRemainingTime = async () => {
+    try {
+      if (!userDog) return;
+
+      const dogDocRef = doc(db, "dogs", userDog.id);
+      const dogDoc = await getDoc(dogDocRef);
+
+      if (dogDoc.exists()) {
+        const dogData = dogDoc.data();
+        if (dogData.lastWalkingStatusUpdate && dogData.isWalking) {
+          // FirestoreのタイムスタンプをDateオブジェクトに変換
+          const lastUpdate = dogData.lastWalkingStatusUpdate.toDate
+            ? dogData.lastWalkingStatusUpdate.toDate()
+            : new Date(dogData.lastWalkingStatusUpdate);
+
+          // 残り時間を計算（散歩開始からの経過時間をもとに）
+          const elapsedMinutes = Math.floor(
+            (new Date().getTime() - lastUpdate.getTime()) / 60000
+          );
+          const remaining = Math.max(0, walkingTimeLimit - elapsedMinutes);
+
+          console.log(
+            `残り時間更新: ${remaining}分（経過: ${elapsedMinutes}分）`
+          );
+
+          setRemainingTime(remaining);
+
+          // 残り時間が0になったら散歩を終了（オプション）
+          if (remaining <= 0 && isWalking) {
+            // ここに自動終了処理を追加することもできます
+            // あえてサーバーサイドの処理に任せる場合はここでの更新は不要
+          }
         }
       }
+    } catch (error) {
+      console.error("残り時間の更新エラー:", error);
     }
-  } catch (error) {
-    console.error("残り時間の更新エラー:", error);
-  }
-};
-
-// お散歩状態変更時と画面がフォーカスされた時に残り時間を更新
-useEffect(() => {
-  if (isWalking) {
-    updateRemainingTime();
-    startWalkingTimer();
-  } else {
-    stopWalkingTimer();
-    setRemainingTime(null);
-  }
-  
-  return () => {
-    stopWalkingTimer();
   };
-}, [isWalking, userDog]);
 
-// 画面がフォーカスされたときに残り時間を更新
-useFocusEffect(
-  useCallback(() => {
+  // お散歩状態変更時と画面がフォーカスされた時に残り時間を更新
+  useEffect(() => {
     if (isWalking) {
-      console.log("画面フォーカス時: 残り時間を更新します");
       updateRemainingTime();
+      startWalkingTimer();
+    } else {
+      stopWalkingTimer();
+      setRemainingTime(null);
     }
-    
+
     return () => {
-      // クリーンアップは不要
+      stopWalkingTimer();
     };
-  }, [isWalking, userDog])
-);
+  }, [isWalking, userDog]);
+
+  // 画面がフォーカスされたときに残り時間を更新
+  useFocusEffect(
+    useCallback(() => {
+      if (isWalking) {
+        console.log("画面フォーカス時: 残り時間を更新します");
+        updateRemainingTime();
+      }
+
+      return () => {
+        // クリーンアップは不要
+      };
+    }, [isWalking, userDog])
+  );
 
   // ユーザーデータを取得する関数
   const fetchUserData = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        console.log("fetchUserData: ユーザーが見つかりません");
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (!userDoc.exists()) {
         setLoading(false);
         return;
       }
 
-      console.log(
-        `fetchUserData: ユーザーID ${currentUser.uid} のデータを取得します`
-      );
+      const userData = userDoc.data();
+      setUsername(userData.name);
+      setIsOwner(userData.isOwner);
 
-      // リアルタイムリスナーを使用してユーザー情報を取得
-      const userDocRef = doc(db, "users", currentUser.uid);
-      return onSnapshot(
-        userDocRef,
-        (userDoc) => {
-          if (userDoc.exists()) {
-            // ドキュメントが存在する場合、ユーザー名を取得
-            const userData = userDoc.data();
-            console.log(`ユーザーデータを取得: ${userData.name}`);
-            setUsername(userData.name);
-            setIsOwner(userData.isOwner);
+      if (userData.isOwner) {
+        const dogsQuery = query(
+          collection(db, "dogs"),
+          where("userID", "==", user.uid)
+        );
 
-            // ユーザーが犬の飼い主の場合、犬の情報を取得
-            if (userData.isOwner) {
-              // ユーザーIDに一致する犬を検索
-              const fetchDogData = async () => {
-                try {
-                  // まずuserIDで検索
-                  const dogsQuery = query(
-                    collection(db, "dogs"),
-                    where("userID", "==", currentUser.uid)
-                  );
+        const dogsSnapshot = await getDocs(dogsQuery);
 
-                  const dogsSnapshot = await getDocs(dogsQuery);
+        if (!dogsSnapshot.empty) {
+          const dogDoc = dogsSnapshot.docs[0];
+          const dogData = dogDoc.data();
+          setUserDog({
+            id: dogDoc.id,
+            dogname: dogData.dogname,
+          });
+          setIsWalking(dogData.isWalking || false);
+        } else {
+          const altDogsQuery = query(
+            collection(db, "dogs"),
+            where("ownerID", "==", user.uid)
+          );
 
-                  if (!dogsSnapshot.empty) {
-                    // 犬のドキュメントが見つかった場合
-                    const dogDoc = dogsSnapshot.docs[0];
-                    const dogData = dogDoc.data();
-                    console.log(`犬のデータを取得: ${dogData.dogname}`);
+          const altDogsSnapshot = await getDocs(altDogsQuery);
 
-                    setUserDog({
-                      id: dogDoc.id,
-                      dogname: dogData.dogname,
-                    });
-                    // お散歩状態を設定
-                    setIsWalking(dogData.isWalking || false);
-                  } else {
-                    // 犬が見つからなかった場合、userIDではなくownerIDで再試行
-                    const altDogsQuery = query(
-                      collection(db, "dogs"),
-                      where("ownerID", "==", currentUser.uid)
-                    );
-
-                    const altDogsSnapshot = await getDocs(altDogsQuery);
-
-                    if (!altDogsSnapshot.empty) {
-                      const dogDoc = altDogsSnapshot.docs[0];
-                      const dogData = dogDoc.data();
-                      console.log(
-                        `犬のデータを取得(ownerID): ${dogData.dogname}`
-                      );
-
-                      setUserDog({
-                        id: dogDoc.id,
-                        dogname: dogData.dogname,
-                      });
-                      // お散歩状態を設定
-                      setIsWalking(dogData.isWalking || false);
-                    }
-                  }
-                } catch (error) {
-                  console.error("犬のデータ取得エラー:", error);
-                }
-              };
-
-              fetchDogData();
-            }
-          } else {
-            console.log("ユーザードキュメントが存在しません");
+          if (!altDogsSnapshot.empty) {
+            const dogDoc = altDogsSnapshot.docs[0];
+            const dogData = dogDoc.data();
+            setUserDog({
+              id: dogDoc.id,
+              dogname: dogData.dogname,
+            });
+            setIsWalking(dogData.isWalking || false);
           }
-
-          setLoading(false);
-        },
-        (error) => {
-          console.error("ユーザー情報のリスナーエラー:", error);
-          setLoading(false);
         }
-      );
+      }
     } catch (error) {
-      console.error("ユーザー情報の取得エラー:", error);
+      console.error("ユーザーデータの取得に失敗しました:", error);
+    } finally {
       setLoading(false);
-      return null;
     }
   };
 
   // 認証状態が変わった時にデータを取得
   useEffect(() => {
-    let unsubscribe: (() => void) | null = null;
-
-    if (isAuthenticated && user) {
-      console.log(`認証済みユーザー: ${user.uid} のデータを取得します`);
-      // 認証済みの場合のみデータ取得を実行
-      const fetchData = async () => {
-        const unsub = await fetchUserData();
-        if (typeof unsub === "function") {
-          unsubscribe = unsub;
-        }
-      };
-
-      fetchData();
-    } else {
-      console.log("認証されていないか、ユーザーデータがありません");
-      setLoading(false);
+    if (user) {
+      fetchUserData();
     }
-
-    // クリーンアップ関数
-    return () => {
-      if (unsubscribe) {
-        console.log("ユーザーデータリスナーをクリーンアップします");
-        unsubscribe();
-      }
-    };
-  }, [isAuthenticated, user]);
+  }, [user]);
 
   // 画面がフォーカスされた時の処理
   useFocusEffect(
@@ -392,7 +334,8 @@ useFocusEffect(
           <View style={styles.walkingStatusContainer}>
             <View>
               <Text style={styles.walkingText}>
-                {userDog.dogname}{isWalking ? "とお散歩中" : "はお留守番中"}
+                {userDog.dogname}
+                {isWalking ? "とお散歩中" : "はお留守番中"}
               </Text>
               {isWalking && remainingTime !== null && (
                 <Text style={styles.timerText}>

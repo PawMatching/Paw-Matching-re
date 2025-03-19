@@ -326,7 +326,7 @@ const ChatScreen = () => {
           onPress={() => navigation.goBack()}
           style={styles.headerButton}
         >
-          <Ionicons name="chevron-back" size={24} color="#4dabf7" />
+          <Ionicons name="chevron-back" size={24} color="#FF9500" />
         </TouchableOpacity>
       ),
     });
@@ -512,7 +512,7 @@ const ChatScreen = () => {
             <Ionicons
               name="send"
               size={24}
-              color={newMessage.trim() && !isExpired ? "#4dabf7" : "#adb5bd"}
+              color={newMessage.trim() && !isExpired ? "#FF9500" : "#adb5bd"}
             />
           </TouchableOpacity>
         </View>

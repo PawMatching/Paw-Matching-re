@@ -22,7 +22,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
 import type { AccountStackParamList } from "../../navigation/types";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuthState } from "../../hooks/useAuthState";
 
@@ -124,34 +124,14 @@ const EditDogProfileScreen = () => {
 
   const uploadImage = async (uri: string, dogId: string) => {
     try {
-      console.log("画像アップロード開始:", uri);
-      console.log("dogId:", dogId);
-
       const response = await fetch(uri);
       const blob = await response.blob();
-
-      // dogIdを使用してストレージパスを設定
       const storageRef = ref(storage, `dogs/${dogId}/profile/profileImage`);
-      console.log("アップロード先パス:", `dogs/${dogId}/profile/profileImage`);
-
-      // アップロード処理
-      console.log("uploadBytes開始...");
       const uploadTask = await uploadBytes(storageRef, blob);
-      console.log("uploadBytes完了:", uploadTask);
-
-      // URLの取得
-      console.log("getDownloadURL開始...");
       const downloadURL = await getDownloadURL(uploadTask.ref);
-      console.log("getDownloadURL完了:", downloadURL);
-
       return downloadURL;
     } catch (error) {
-      console.error("画像アップロード処理エラー（詳細）:", error);
-      if (error instanceof Error) {
-        console.error("エラーメッセージ:", error.message);
-        console.error("エラー名:", error.name);
-        console.error("エラースタック:", error.stack);
-      }
+      console.error("画像のアップロードに失敗しました:", error);
       throw error;
     }
   };
@@ -191,7 +171,7 @@ const EditDogProfileScreen = () => {
 
           // Firestoreの更新が反映されるまで待つ
           console.log("Firestoreの更新を待機中...");
-          await new Promise((resolve) => setTimeout(resolve, 1000)); 
+          await new Promise((resolve) => setTimeout(resolve, 1000));
           console.log("待機完了");
 
           // ドキュメントの存在を確認
@@ -590,7 +570,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   updateButton: {
-    backgroundColor: "#f9a8a8",
+    backgroundColor: "#FF9500",
     borderRadius: 25,
     paddingVertical: 15,
     width: "100%",

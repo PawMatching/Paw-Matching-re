@@ -1,4 +1,4 @@
-// 
+//
 import React, { useState } from "react";
 import {
   View,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Linking,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAuthState } from "../../hooks/useAuthState";
@@ -20,6 +21,7 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [privacyPolicyAccepted, setPrivacyPolicyAccepted] = useState(false);
   const navigation = useNavigation<AuthScreenNavigationProp>();
   const { signUp } = useAuthState();
 
@@ -35,6 +37,10 @@ export default function SignUpScreen() {
     }
     if (password.length < 6) {
       Alert.alert("エラー", "パスワードは6文字以上で入力してください");
+      return;
+    }
+    if (!privacyPolicyAccepted) {
+      Alert.alert("エラー", "プライバシーポリシーに同意してください");
       return;
     }
 
@@ -103,6 +109,32 @@ export default function SignUpScreen() {
         onChangeText={setConfirmPassword}
         secureTextEntry
       />
+      <View style={styles.privacyPolicyContainer}>
+        <TouchableOpacity
+          style={styles.checkbox}
+          onPress={() => setPrivacyPolicyAccepted(!privacyPolicyAccepted)}
+        >
+          <View
+            style={[
+              styles.checkboxInner,
+              privacyPolicyAccepted && styles.checkboxChecked,
+            ]}
+          >
+            {privacyPolicyAccepted && <Text style={styles.checkmark}>✓</Text>}
+          </View>
+        </TouchableOpacity>
+        <Text style={styles.privacyPolicyText}>
+          <Text
+            style={styles.privacyPolicyLink}
+            onPress={() =>
+              Linking.openURL("https://pawmatching.web.app/privacy-policy.html")
+            }
+          >
+            プライバシーポリシー
+          </Text>
+          <Text>に同意する</Text>
+        </Text>
+      </View>
       <TouchableOpacity style={styles.button} onPress={handleSignUp}>
         <Text style={styles.buttonText}>登録</Text>
       </TouchableOpacity>
@@ -156,5 +188,37 @@ const styles = StyleSheet.create({
   linkText: {
     color: "#FF9500",
     textAlign: "center",
+  },
+  privacyPolicyContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  checkbox: {
+    marginRight: 10,
+  },
+  checkboxInner: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: "#FF9500",
+    borderRadius: 4,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  checkboxChecked: {
+    backgroundColor: "#FF9500",
+  },
+  checkmark: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  privacyPolicyText: {
+    fontSize: 14,
+  },
+  privacyPolicyLink: {
+    color: "#FF9500",
+    textDecorationLine: "underline",
   },
 });
