@@ -1,5 +1,13 @@
 import { useState, useCallback, useEffect } from "react";
-import { View, Text, Button, StyleSheet, Switch, Alert } from "react-native";
+import {
+  View,
+  Text,
+  Button,
+  StyleSheet,
+  Switch,
+  Alert,
+  TouchableOpacity,
+} from "react-native";
 import {
   doc,
   getDoc,
@@ -121,10 +129,10 @@ export default function HomeScreen() {
       clearInterval(timer);
     }
 
-    // 10秒ごとにカウントダウン（より頻繁に更新するため、アプリがバックグラウンドから戻ったときもすぐに反映）
+    // カウントダウン（より頻繁に更新するため、アプリがバックグラウンドから戻ったときもすぐに反映したい）
     const newTimer = setInterval(() => {
       updateRemainingTime();
-    }, 30000); // 30秒ごとに更新（1分に変更しても）
+    }, 60000); // 1分ごとに更新
 
     setTimer(newTimer);
   };
@@ -176,10 +184,8 @@ export default function HomeScreen() {
           setRemainingTime(remaining);
 
           // 残り時間が0になったら散歩を終了（オプション）
-          if (remaining <= 0 && isWalking) {
-            // ここに自動終了処理を追加することもできます
-            // あえてサーバーサイドの処理に任せる場合はここでの更新は不要
-          }
+          // if (remaining <= 0 && isWalking) {...
+          // cloud functionで設定済み
         }
       }
     } catch (error) {
@@ -313,18 +319,22 @@ export default function HomeScreen() {
         ようこそ、{username ? username : ""}さん！
       </Text>
 
-      <Button
-        title="わんちゃんを探す"
+      <TouchableOpacity
+        style={styles.searchButton}
         onPress={() => navigation.navigate("Search")}
-      />
+      >
+        <Text style={styles.searchButtonText}>わんちゃんを探す</Text>
+      </TouchableOpacity>
 
       {/* isOwnerがfalseの場合のみ犬登録ボタンを表示 */}
       {!isOwner && (
         <View style={styles.buttonContainer}>
-          <Button
-            title="わんちゃんを登録する"
+          <TouchableOpacity
+            style={styles.registerButton}
             onPress={() => navigation.navigate("RegisterDog")}
-          />
+          >
+            <Text style={styles.registerButtonText}>わんちゃんを登録する</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -346,8 +356,8 @@ export default function HomeScreen() {
             <Switch
               value={isWalking}
               onValueChange={toggleWalkingStatus}
-              trackColor={{ false: "#767577", true: "#81b0ff" }}
-              thumbColor={isWalking ? "#f5dd4b" : "#f4f3f4"}
+              trackColor={{ false: "#767577", true: "#ffd8a1" }}
+              thumbColor={isWalking ? "#FF9500" : "#f4f3f4"}
             />
           </View>
         </View>
@@ -366,9 +376,34 @@ const styles = StyleSheet.create({
     fontSize: 24,
     marginBottom: 30,
   },
+  searchButton: {
+    backgroundColor: "#FF9500",
+    padding: 15,
+    borderRadius: 8,
+    width: "80%",
+    marginBottom: 15,
+  },
+  searchButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
   buttonContainer: {
     width: "80%",
     marginBottom: 15,
+  },
+  registerButton: {
+    backgroundColor: "#FF9500",
+    padding: 15,
+    borderRadius: 8,
+    width: "100%",
+  },
+  registerButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
   },
   walkingContainer: {
     width: "80%",
