@@ -171,7 +171,9 @@ const DogDetailScreen = () => {
           <Text style={styles.dogName}>{dog.dogname}</Text>
           <View style={styles.distanceBadge}>
             <Ionicons name="location" size={16} color="white" />
-            <Text style={styles.distanceText}>{dog.distance}km</Text>
+            <Text style={styles.distanceText}>
+              {parseFloat(dog.distance || "0").toFixed(1)}km
+            </Text>
           </View>
         </View>
 
