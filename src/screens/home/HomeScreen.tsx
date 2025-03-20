@@ -73,8 +73,6 @@ export default function HomeScreen() {
         await updateDoc(dogDocRef, {
           isWalking: true,
           lastWalkingStatusUpdate: now,
-          latitude: currentLocation.coords.latitude,
-          longitude: currentLocation.coords.longitude,
         });
 
         // Realtime Databaseにも位置情報を保存
@@ -84,7 +82,7 @@ export default function HomeScreen() {
           latitude: currentLocation.coords.latitude,
           longitude: currentLocation.coords.longitude,
           lastUpdated: new Date().toISOString(),
-          isWalking: !isWalking,
+          isWalking: true,
         });
 
         setIsWalking(true);
@@ -95,8 +93,6 @@ export default function HomeScreen() {
         await updateDoc(dogDocRef, {
           isWalking: false,
           lastWalkingStatusUpdate: now,
-          latitude: currentLocation.coords.latitude,
-          longitude: currentLocation.coords.longitude,
         });
 
         // Realtime Databaseも更新

@@ -136,20 +136,34 @@ const SearchDogsScreen = ({
         query(collection(db, "dogs"), where("isWalking", "==", true))
       );
 
+      // Realtime Databaseから位置情報を取得
+      const rtdb = getDatabase();
+      const locationsRef = ref(rtdb, "locations/dogs");
+
       // 検索結果の処理
       for (const doc of querySnapshot.docs) {
         const dogData = doc.data();
-        const dogLocation = dogData.location;
+        const dogId = doc.id;
 
-        if (!dogLocation) {
+        // Realtime Databaseから位置情報を取得
+        const dogLocationSnapshot = await get(
+          ref(rtdb, `locations/dogs/${dogId}`)
+        );
+        const dogLocationData = dogLocationSnapshot.val();
+
+        if (
+          !dogLocationData ||
+          !dogLocationData.latitude ||
+          !dogLocationData.longitude
+        ) {
           continue;
         }
 
         const distance = calculateDistance(
           location.latitude,
           location.longitude,
-          dogLocation.latitude,
-          dogLocation.longitude
+          dogLocationData.latitude,
+          dogLocationData.longitude
         );
 
         if (distance <= searchRadius) {
@@ -162,8 +176,8 @@ const SearchDogsScreen = ({
             likes: dogData.likes || "",
             notes: dogData.notes || "",
             distance: distance.toString(),
-            latitude: dogLocation.latitude,
-            longitude: dogLocation.longitude,
+            latitude: dogLocationData.latitude,
+            longitude: dogLocationData.longitude,
             isWalking: dogData.isWalking || false,
             userID: dogData.userID || "",
             createdAt: dogData.createdAt || new Date().toISOString(),
