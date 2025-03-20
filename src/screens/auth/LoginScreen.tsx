@@ -1,5 +1,5 @@
 // src/screens/auth/LoginScreen.tsx
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,12 +11,20 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { useAuthState } from "../../hooks/useAuthState";
 import { AuthScreenNavigationProp } from "../../navigation/types";
+import LottieView from "lottie-react-native";
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigation = useNavigation<AuthScreenNavigationProp>();
   const { signIn } = useAuthState();
+  const animationRef = useRef<LottieView>(null);
+
+  useEffect(() => {
+    if (animationRef.current) {
+      animationRef.current.play();
+    }
+  }, []);
 
   const handleLogin = async () => {
     try {
@@ -31,31 +39,45 @@ const LoginScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Pawにログイン</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="メールアドレス"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="パスワード"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>ログイン</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.linkButton}
-        onPress={() => navigation.navigate("SignUp")}
-      >
-        <Text style={styles.linkText}>アカウントをお持ちでない方はこちら</Text>
-      </TouchableOpacity>
+      <View style={styles.formContainer}>
+        <Text style={styles.title}>ログイン</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="メールアドレス"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="パスワード"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+        <TouchableOpacity style={styles.button} onPress={handleLogin}>
+          <Text style={styles.buttonText}>ログイン</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.linkButton}
+          onPress={() => navigation.navigate("SignUp")}
+        >
+          <Text style={styles.linkText}>
+            アカウントをお持ちでない方はこちら
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.animationContainer}>
+        <LottieView
+          ref={animationRef}
+          source={require("../../../assets/Auth-Animation.json")}
+          style={styles.animation}
+          autoPlay={true}
+          loop={true}
+        />
+      </View>
     </View>
   );
 };
@@ -63,9 +85,13 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
+  },
+  formContainer: {
+    flex: 1,
     justifyContent: "center",
     padding: 20,
-    backgroundColor: "#fff",
   },
   title: {
     fontSize: 24,
@@ -98,6 +124,16 @@ const styles = StyleSheet.create({
   linkText: {
     color: "#FF9500",
     textAlign: "center",
+  },
+  animationContainer: {
+    height: 150,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
+  animation: {
+    width: 300,
+    height: 150,
   },
 });
 
