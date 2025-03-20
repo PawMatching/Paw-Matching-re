@@ -1,5 +1,5 @@
 //
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { AuthScreenNavigationProp } from "../../navigation/types";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { FirebaseError } from "firebase/app";
+import LottieView from "lottie-react-native";
 
 export default function SignUpScreen() {
   const [email, setEmail] = useState("");
@@ -24,6 +25,13 @@ export default function SignUpScreen() {
   const [privacyPolicyAccepted, setPrivacyPolicyAccepted] = useState(false);
   const navigation = useNavigation<AuthScreenNavigationProp>();
   const { signUp } = useAuthState();
+  const animationRef = useRef<LottieView>(null);
+
+  useEffect(() => {
+    if (animationRef.current) {
+      animationRef.current.play();
+    }
+  }, []);
 
   const handleSignUp = async () => {
     // 入力値の検証
@@ -80,72 +88,86 @@ export default function SignUpScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>新規登録</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="ユーザー名"
-        value={username}
-        onChangeText={setUsername}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="メールアドレス"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="パスワード"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="パスワード（確認）"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
-      />
-      <View style={styles.privacyPolicyContainer}>
-        <TouchableOpacity
-          style={styles.checkbox}
-          onPress={() => setPrivacyPolicyAccepted(!privacyPolicyAccepted)}
-        >
-          <View
-            style={[
-              styles.checkboxInner,
-              privacyPolicyAccepted && styles.checkboxChecked,
-            ]}
+      <View style={styles.formContainer}>
+        <Text style={styles.title}>新規登録</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="ユーザー名"
+          value={username}
+          onChangeText={setUsername}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="メールアドレス"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="パスワード"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="パスワード（確認）"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry
+        />
+        <View style={styles.privacyPolicyContainer}>
+          <TouchableOpacity
+            style={styles.checkbox}
+            onPress={() => setPrivacyPolicyAccepted(!privacyPolicyAccepted)}
           >
-            {privacyPolicyAccepted && <Text style={styles.checkmark}>✓</Text>}
-          </View>
-        </TouchableOpacity>
-        <Text style={styles.privacyPolicyText}>
-          <Text
-            style={styles.privacyPolicyLink}
-            onPress={() =>
-              Linking.openURL("https://pawmatching.web.app/privacy-policy.html")
-            }
-          >
-            プライバシーポリシー
+            <View
+              style={[
+                styles.checkboxInner,
+                privacyPolicyAccepted && styles.checkboxChecked,
+              ]}
+            >
+              {privacyPolicyAccepted && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+          </TouchableOpacity>
+          <Text style={styles.privacyPolicyText}>
+            <Text
+              style={styles.privacyPolicyLink}
+              onPress={() =>
+                Linking.openURL(
+                  "https://pawmatching.web.app/privacy-policy.html"
+                )
+              }
+            >
+              プライバシーポリシー
+            </Text>
+            <Text>に同意する</Text>
           </Text>
-          <Text>に同意する</Text>
-        </Text>
+        </View>
+        <TouchableOpacity style={styles.button} onPress={handleSignUp}>
+          <Text style={styles.buttonText}>登録</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.linkButton}
+          onPress={() => navigation.navigate("Login")}
+        >
+          <Text style={styles.linkText}>
+            すでにアカウントをお持ちの方はこちら
+          </Text>
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity style={styles.button} onPress={handleSignUp}>
-        <Text style={styles.buttonText}>登録</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.linkButton}
-        onPress={() => navigation.navigate("Login")}
-      >
-        <Text style={styles.linkText}>
-          すでにアカウントをお持ちの方はこちら
-        </Text>
-      </TouchableOpacity>
+
+      <View style={styles.animationContainer}>
+        <LottieView
+          ref={animationRef}
+          source={require("../../../assets/Auth-Animation.json")}
+          style={styles.animation}
+          autoPlay={true}
+          loop={true}
+        />
+      </View>
     </View>
   );
 }
@@ -153,9 +175,13 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
+  },
+  formContainer: {
+    flex: 1,
     justifyContent: "center",
     padding: 20,
-    backgroundColor: "#fff",
   },
   title: {
     fontSize: 24,
@@ -220,5 +246,15 @@ const styles = StyleSheet.create({
   privacyPolicyLink: {
     color: "#FF9500",
     textDecorationLine: "underline",
+  },
+  animationContainer: {
+    height: 150,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
+  animation: {
+    width: 300,
+    height: 150,
   },
 });
