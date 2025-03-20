@@ -67,7 +67,7 @@ const SearchDogsScreen = ({
   const auth = getAuth();
   const currentUser = auth.currentUser;
 
-  const searchRadius = 5; // 検索半径を10kmに拡大
+  const searchRadius = 5; // 検索半径はテスト用に5km
 
   const isFocused = useIsFocused();
 
@@ -215,21 +215,39 @@ const SearchDogsScreen = ({
         const querySnapshot = await getDocs(q);
         const appliedIds: Record<string, boolean> = {};
 
+        // 現在の時刻
+        const currentTime = new Date();
+        // 再申請可能になるまでの時間（ミリ秒）: 2時間 = 7,200,000ミリ秒
+        const reapplyTimeLimit = 2 * 60 * 60 * 1000;
+
+ 
         querySnapshot.forEach((doc) => {
           const data = doc.data();
           if (data.dogID) {
-            appliedIds[data.dogID] = true;
+            // appliedAtタイムスタンプがある場合、時間経過をチェック
+            if (data.appliedAt) {
+              const appliedTime = data.appliedAt.toDate(); // FirestoreのタイムスタンプをDateに変換
+              const timeDifference = currentTime.getTime() - appliedTime.getTime();
+              
+              // 指定時間以内の申請のみを「申請済み」とする
+              if (timeDifference < reapplyTimeLimit) {
+                appliedIds[data.dogID] = true;
+              }
+            } else {
+              // appliedAtがない古いデータの場合は通常通り「申請済み」とする
+              appliedIds[data.dogID] = true;
+            }
           }
         });
-
+  
         setAppliedDogIds(appliedIds);
       } catch (error) {
         console.error("Error checking apply statuses:", error);
       }
     };
-
+  
     checkApplyStatuses();
-  }, [currentUser, nearbyDogs]);
+  }, [currentUser, nearbyDogs]);  
 
   const navigateToDogProfile = (dog: Dog) => {
     navigation.navigate("DogDetail", { dog });
