@@ -41,6 +41,8 @@ export interface ChatData {
   status: ChatStatus;
   expiresAt: Timestamp;
   closedAt?: Timestamp;
+  deletedBy?: { [key: string]: boolean };
+  deletedAt?: { [key: string]: Timestamp };
 }
 
 export interface ChatWithDetails extends ChatData {
