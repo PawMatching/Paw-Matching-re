@@ -9,6 +9,7 @@ import {
   Image,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { getAuth } from "firebase/auth";
@@ -24,10 +25,13 @@ import {
   Timestamp,
   QuerySnapshot,
   DocumentData,
+  deleteDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { ChatData, ChatWithDetails } from "../../types/chat";
 import { NavigationProp } from "../../types/navigation";
+import { Swipeable } from "react-native-gesture-handler";
 
 const ChatListScreen = () => {
   const [chats, setChats] = useState<ChatWithDetails[]>([]);
@@ -39,8 +43,14 @@ const ChatListScreen = () => {
   const currentUser = auth.currentUser;
   const db = getFirestore();
 
+  // スワイプアイテムの参照を保持
+  const [rows, setRows] = useState<Array<Swipeable | null>>([]);
+  const [openRow, setOpenRow] = useState<Swipeable | null>(null);
+
   const processChatsSnapshot = useCallback(
     async (snapshot: QuerySnapshot<DocumentData>, isUserDogOwner: boolean) => {
+      if (!currentUser) return;
+
       const chatsList: ChatWithDetails[] = [];
 
       try {
@@ -49,6 +59,12 @@ const ChatListScreen = () => {
             id: docSnapshot.id,
             ...docSnapshot.data(),
           } as ChatData;
+
+          // 現在のユーザーが削除済みの場合はスキップ
+          if (chatData.deletedBy?.[currentUser.uid]) {
+            return null;
+          }
+
           const otherUserId = isUserDogOwner
             ? chatData.pettingUserID
             : chatData.dogOwnerID;
@@ -110,7 +126,7 @@ const ChatListScreen = () => {
         setError("チャット情報の取得中にエラーが発生しました");
       }
     },
-    [db]
+    [db, currentUser?.uid]
   );
 
   useEffect(() => {
@@ -170,77 +186,142 @@ const ChatListScreen = () => {
     [navigation]
   );
 
+  // スワイプで削除する関数
+  const deleteChat = async (chatId: string) => {
+    if (!currentUser) return;
+
+    Alert.alert("削除の確認", "このチャットを削除しますか？", [
+      {
+        text: "キャンセル",
+        style: "cancel",
+      },
+      {
+        text: "削除",
+        onPress: async () => {
+          try {
+            const db = getFirestore();
+            const chatRef = doc(db, "chats", chatId);
+
+            // チャットを完全に削除するのではなく、現在のユーザーの削除フラグを更新
+            await updateDoc(chatRef, {
+              [`deletedBy.${currentUser.uid}`]: true,
+              [`deletedAt.${currentUser.uid}`]: new Date(),
+            });
+
+            // UIの即時更新のために、削除したチャットをステートから除外
+            setChats((prevChats) =>
+              prevChats.filter((chat) => chat.id !== chatId)
+            );
+            Alert.alert("成功", "チャットを削除しました。");
+          } catch (error) {
+            console.error("Error deleting chat:", error);
+            Alert.alert("エラー", "チャットの削除中にエラーが発生しました。");
+          }
+        },
+      },
+    ]);
+  };
+
+  // スワイプアクションをレンダリングする関数
+  const renderRightActions = (chatId: string) => {
+    return (
+      <TouchableOpacity
+        style={styles.deleteAction}
+        onPress={() => deleteChat(chatId)}
+      >
+        <Ionicons name="trash-outline" size={24} color="#fff" />
+      </TouchableOpacity>
+    );
+  };
+
+  // スワイプした時に他の開いているスワイプを閉じる
+  const closeRow = (index: number) => {
+    if (openRow && openRow !== rows[index]) {
+      openRow.close();
+    }
+    setOpenRow(rows[index]);
+  };
+
   const renderChatItem = useCallback(
-    ({ item }: { item: ChatWithDetails }) => {
+    ({ item, index }: { item: ChatWithDetails; index: number }) => {
       // チャットの有効期限を確認
       const isExpired =
         item.status === "closed" ||
         (item.expiresAt && item.expiresAt.toDate() < new Date());
 
       return (
-        <TouchableOpacity
-          style={[styles.chatItem, isExpired && styles.expiredChatItem]} //期限切れスタイル
-          onPress={() => navigateToChat(item)}
-          disabled={isExpired}
+        <Swipeable
+          ref={(ref) => (rows[index] = ref)}
+          renderRightActions={() => renderRightActions(item.id)}
+          onSwipeableOpen={() => closeRow(index)}
         >
-          {!item.isUserDogOwner ? (
-            <View style={styles.avatarContainer}>
-              {item.dogImage ? (
-                <Image source={{ uri: item.dogImage }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatar, styles.defaultAvatar]}>
-                  <Ionicons name="paw" size={24} color="#adb5bd" />
-                </View>
-              )}
-            </View>
-          ) : (
-            <View style={styles.avatarContainer}>
-              {item.otherUserImage ? (
-                <Image
-                  source={{ uri: item.otherUserImage }}
-                  style={styles.avatar}
-                />
-              ) : (
-                <View style={[styles.avatar, styles.defaultAvatar]}>
-                  <MaterialIcons name="person" size={24} color="#adb5bd" />
-                </View>
-              )}
-            </View>
-          )}
-
-          <View style={styles.chatInfo}>
+          <TouchableOpacity
+            style={[styles.chatItem, isExpired && styles.expiredChatItem]}
+            onPress={() => navigateToChat(item)}
+            disabled={isExpired}
+          >
             {!item.isUserDogOwner ? (
-              <>
-                <Text style={styles.primaryName}>{item.dogName}ちゃん</Text>
-                <Text style={styles.secondaryName}>
-                  飼い主: {item.otherUserName}さん
-                </Text>
-              </>
+              <View style={styles.avatarContainer}>
+                {item.dogImage ? (
+                  <Image
+                    source={{ uri: item.dogImage }}
+                    style={styles.avatar}
+                  />
+                ) : (
+                  <View style={[styles.avatar, styles.defaultAvatar]}>
+                    <Ionicons name="paw" size={24} color="#adb5bd" />
+                  </View>
+                )}
+              </View>
             ) : (
-              <Text style={styles.primaryName}>{item.otherUserName}</Text>
+              <View style={styles.avatarContainer}>
+                {item.otherUserImage ? (
+                  <Image
+                    source={{ uri: item.otherUserImage }}
+                    style={styles.avatar}
+                  />
+                ) : (
+                  <View style={[styles.avatar, styles.defaultAvatar]}>
+                    <MaterialIcons name="person" size={24} color="#adb5bd" />
+                  </View>
+                )}
+              </View>
             )}
 
-            <Text
-              style={[styles.lastMessage, isExpired && styles.expiredText]}
-              numberOfLines={1}
-            >
-              {isExpired
-                ? "このチャットはクローズ済みです"
-                : item.lastMessage || "会話を始めましょう！"}
-            </Text>
-            {!isExpired && item.expiresAt && (
-              <Text style={styles.expirationText}>
-                残り時間: {formatRemainingTime(item.expiresAt)}
+            <View style={styles.chatInfo}>
+              {!item.isUserDogOwner ? (
+                <>
+                  <Text style={styles.primaryName}>{item.dogName}ちゃん</Text>
+                  <Text style={styles.secondaryName}>
+                    飼い主: {item.otherUserName}さん
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.primaryName}>{item.otherUserName}</Text>
+              )}
+
+              <Text
+                style={[styles.lastMessage, isExpired && styles.expiredText]}
+                numberOfLines={1}
+              >
+                {isExpired
+                  ? "このチャットはクローズ済みです"
+                  : item.lastMessage || "会話を始めましょう！"}
+              </Text>
+              {!isExpired && item.expiresAt && (
+                <Text style={styles.expirationText}>
+                  残り時間: {formatRemainingTime(item.expiresAt)}
+                </Text>
+              )}
+            </View>
+
+            {item.lastMessageAt && (
+              <Text style={styles.timeStamp}>
+                {formatTime(item.lastMessageAt)}
               </Text>
             )}
-          </View>
-
-          {item.lastMessageAt && (
-            <Text style={styles.timeStamp}>
-              {formatTime(item.lastMessageAt)}
-            </Text>
-          )}
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </Swipeable>
       );
     },
     [navigateToChat]
@@ -325,6 +406,9 @@ const ChatListScreen = () => {
 
   return (
     <View style={styles.container}>
+      {chats.length > 0 && (
+        <Text style={styles.instruction}>← スワイプで削除</Text>
+      )}
       <FlatList
         data={chats}
         renderItem={renderChatItem}
@@ -342,6 +426,12 @@ const ChatListScreen = () => {
             </Text>
           </View>
         }
+        onScrollBeginDrag={() => {
+          if (openRow) {
+            openRow.close();
+            setOpenRow(null);
+          }
+        }}
       />
     </View>
   );
@@ -460,6 +550,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#fa5252",
     marginTop: 4,
+  },
+  instruction: {
+    textAlign: "center",
+    padding: 8,
+    color: "#adb5bd",
+    backgroundColor: "#f8f9fa",
+    fontSize: 14,
+  },
+  deleteAction: {
+    backgroundColor: "#ff6b6b",
+    justifyContent: "center",
+    alignItems: "center",
+    width: 70,
+    height: "100%",
   },
 });
 
