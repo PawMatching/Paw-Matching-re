@@ -84,7 +84,31 @@ const DogDetailScreen = () => {
         );
 
         const querySnapshot = await getDocs(q);
-        setIsApplied(!querySnapshot.empty);
+        let isCurrentlyApplied = false;
+
+        // 現在の時刻
+        const currentTime = new Date();
+        // 再申請可能になるまでの時間（ミリ秒）: 2時間 = 7,200,000ミリ秒
+        const reapplyTimeLimit = 2 * 60 * 60 * 1000;
+
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.appliedAt) {
+            const appliedTime = data.appliedAt.toDate(); // FirestoreのタイムスタンプをDateに変換
+            const timeDifference =
+              currentTime.getTime() - appliedTime.getTime();
+
+            // 指定時間以内の申請のみを「申請済み」とする
+            if (timeDifference < reapplyTimeLimit) {
+              isCurrentlyApplied = true;
+            }
+          } else {
+            // appliedAtがない古いデータの場合は通常通り「申請済み」とする
+            isCurrentlyApplied = true;
+          }
+        });
+
+        setIsApplied(isCurrentlyApplied);
       } catch (error) {
         console.error("Error checking apply status:", error);
       }
