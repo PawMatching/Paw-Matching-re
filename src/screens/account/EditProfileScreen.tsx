@@ -9,6 +9,8 @@ import {
   Alert,
   ActivityIndicator,
   Text,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -26,6 +28,7 @@ import {
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuthState } from "../../hooks/useAuthState";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const EditProfileScreen = () => {
   const navigation =
@@ -209,75 +212,95 @@ const EditProfileScreen = () => {
   }
 
   return (
-    <ScrollView>
-      <View style={styles.container}>
-        <Text style={styles.header}>プロフィール編集</Text>
+    <SafeAreaView style={styles.safeArea} edges={["left", "right"]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.keyboardAvoidingView}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.container}>
+            <Text style={styles.header}>プロフィール編集</Text>
 
-        <TouchableOpacity onPress={pickImage} style={styles.imageContainer}>
-          {profileImage ? (
-            <Image source={{ uri: profileImage }} style={styles.image} />
-          ) : (
-            <View style={[styles.image, styles.placeholderContainer]}>
-              <MaterialIcons name="person" size={60} color="#888888" />
-            </View>
-          )}
-        </TouchableOpacity>
+            <TouchableOpacity onPress={pickImage} style={styles.imageContainer}>
+              {profileImage ? (
+                <Image source={{ uri: profileImage }} style={styles.image} />
+              ) : (
+                <View style={[styles.image, styles.placeholderContainer]}>
+                  <MaterialIcons name="person" size={60} color="#888888" />
+                </View>
+              )}
+            </TouchableOpacity>
 
-        <TouchableOpacity onPress={pickImage} style={styles.uploadButton}>
-          <Text style={styles.uploadButtonText}>プロフィール画像を変更</Text>
-        </TouchableOpacity>
+            <TouchableOpacity onPress={pickImage} style={styles.uploadButton}>
+              <Text style={styles.uploadButtonText}>
+                プロフィール画像を変更
+              </Text>
+            </TouchableOpacity>
 
-        <Text style={styles.label}>ユーザー名</Text>
-        <TextInput
-          style={styles.input}
-          value={username}
-          onChangeText={setUsername}
-          placeholder="ユーザー名"
-        />
+            <Text style={styles.label}>ユーザー名</Text>
+            <TextInput
+              style={styles.input}
+              value={username}
+              onChangeText={setUsername}
+              placeholder="ユーザー名"
+            />
 
-        <Text style={styles.label}>メールアドレス</Text>
-        <TextInput
-          style={[styles.input, styles.disabledInput]}
-          value={email}
-          editable={false}
-        />
+            <Text style={styles.label}>メールアドレス</Text>
+            <TextInput
+              style={[styles.input, styles.disabledInput]}
+              value={email}
+              editable={false}
+            />
 
-        <Text style={styles.label}>一言コメント</Text>
-        <TextInput
-          style={styles.textArea}
-          value={comment}
-          onChangeText={setComment}
-          multiline={true}
-          numberOfLines={4}
-          placeholder="自己紹介や一言コメントをどうぞ"
-        />
+            <Text style={styles.label}>一言コメント</Text>
+            <TextInput
+              style={styles.textArea}
+              value={comment}
+              onChangeText={setComment}
+              multiline={true}
+              numberOfLines={4}
+              placeholder="自己紹介や一言コメントをどうぞ"
+            />
 
-        <Text style={styles.label}>パスワード確認</Text>
-        <TextInput
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-          placeholder="変更を確定するにはパスワードを入力してください"
-          secureTextEntry={true}
-        />
+            <Text style={styles.label}>パスワード確認</Text>
+            <TextInput
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="変更を確定するにはパスワードを入力してください"
+              secureTextEntry={true}
+            />
 
-        <TouchableOpacity
-          style={[styles.updateButton, isLoading && styles.disabledButton]}
-          onPress={handleUpdate}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={styles.updateButtonText}>更新する</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+            <TouchableOpacity
+              style={[styles.updateButton, isLoading && styles.disabledButton]}
+              onPress={handleUpdate}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.updateButtonText}>更新する</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "white",
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     padding: 25,

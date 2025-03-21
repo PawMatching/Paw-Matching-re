@@ -13,6 +13,7 @@ import {
   Pressable,
   Platform,
   Modal,
+  KeyboardAvoidingView,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -25,6 +26,7 @@ import type { AccountStackParamList } from "../../navigation/types";
 import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuthState } from "../../hooks/useAuthState";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type EditDogProfileScreenRouteProp = RouteProp<
   AccountStackParamList,
@@ -245,154 +247,172 @@ const EditDogProfileScreen = () => {
   }
 
   return (
-    <ScrollView>
-      <View style={styles.container}>
-        <Text style={styles.header}>わんちゃんプロフィール編集</Text>
+    <SafeAreaView style={styles.safeArea} edges={["left", "right"]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.keyboardAvoidingView}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.container}>
+            <Text style={styles.header}>わんちゃんプロフィール編集</Text>
 
-        {/* 画像アップロード部分 */}
-        <TouchableOpacity onPress={pickImage} style={styles.imageContainer}>
-          {image ? (
-            <Image source={{ uri: image }} style={styles.image} />
-          ) : (
-            <View style={[styles.image, styles.placeholderContainer]}>
-              <MaterialIcons name="pets" size={60} color="#888888" />
+            {/* 画像アップロード部分 */}
+            <TouchableOpacity onPress={pickImage} style={styles.imageContainer}>
+              {image ? (
+                <Image source={{ uri: image }} style={styles.image} />
+              ) : (
+                <View style={[styles.image, styles.placeholderContainer]}>
+                  <MaterialIcons name="pets" size={60} color="#888888" />
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={pickImage} style={styles.uploadButton}>
+              <Text style={styles.uploadButtonText}>画像を変更</Text>
+            </TouchableOpacity>
+
+            {/* 名前入力 */}
+            <Text style={styles.label}>お名前</Text>
+            <TextInput
+              style={styles.input}
+              value={name}
+              onChangeText={setName}
+              placeholder="お名前"
+            />
+
+            {/* 年齢選択 */}
+            <Text style={styles.label}>年齢</Text>
+            <View style={styles.rowContainer}>
+              <TouchableOpacity
+                style={styles.pickerContainer}
+                onPress={() => setIsAgePickerVisible(true)}
+              >
+                <Text style={styles.pickerText}>
+                  {age ? `${age}` : "選択してください"}
+                </Text>
+                <MaterialIcons name="arrow-drop-down" size={24} color="#999" />
+              </TouchableOpacity>
+              <Text style={styles.unitText}>才</Text>
             </View>
-          )}
-        </TouchableOpacity>
 
-        <TouchableOpacity onPress={pickImage} style={styles.uploadButton}>
-          <Text style={styles.uploadButtonText}>画像を変更</Text>
-        </TouchableOpacity>
-
-        {/* 名前入力 */}
-        <Text style={styles.label}>お名前</Text>
-        <TextInput
-          style={styles.input}
-          value={name}
-          onChangeText={setName}
-          placeholder="お名前"
-        />
-
-        {/* 年齢選択 */}
-        <Text style={styles.label}>年齢</Text>
-        <View style={styles.rowContainer}>
-          <TouchableOpacity
-            style={styles.pickerContainer}
-            onPress={() => setIsAgePickerVisible(true)}
-          >
-            <Text style={styles.pickerText}>
-              {age ? `${age}` : "選択してください"}
-            </Text>
-            <MaterialIcons name="arrow-drop-down" size={24} color="#999" />
-          </TouchableOpacity>
-          <Text style={styles.unitText}>才</Text>
-        </View>
-
-        <Modal
-          visible={isAgePickerVisible}
-          transparent={true}
-          animationType="slide"
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>年齢を選択</Text>
-                <TouchableOpacity
-                  onPress={() => setIsAgePickerVisible(false)}
-                  style={styles.closeButton}
-                >
-                  <Text style={styles.closeButtonText}>完了</Text>
-                </TouchableOpacity>
-              </View>
-              <ScrollView>
-                {ageOptions.map((option) => (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.optionItem,
-                      age === option.value && styles.selectedOption,
-                    ]}
-                    onPress={() => {
-                      setAge(option.value);
-                      setIsAgePickerVisible(false);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.optionText,
-                        age === option.value && styles.selectedOptionText,
-                      ]}
+            <Modal
+              visible={isAgePickerVisible}
+              transparent={true}
+              animationType="slide"
+            >
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>年齢を選択</Text>
+                    <TouchableOpacity
+                      onPress={() => setIsAgePickerVisible(false)}
+                      style={styles.closeButton}
                     >
-                      {option.label}才
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+                      <Text style={styles.closeButtonText}>完了</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <ScrollView>
+                    {ageOptions.map((option) => (
+                      <TouchableOpacity
+                        key={option.value}
+                        style={[
+                          styles.optionItem,
+                          age === option.value && styles.selectedOption,
+                        ]}
+                        onPress={() => {
+                          setAge(option.value);
+                          setIsAgePickerVisible(false);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.optionText,
+                            age === option.value && styles.selectedOptionText,
+                          ]}
+                        >
+                          {option.label}才
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
+            </Modal>
+
+            {/* 性別選択 */}
+            <View style={styles.radioContainer}>
+              <Pressable
+                style={styles.radioButton}
+                onPress={() => setGender("male")}
+              >
+                <View style={styles.radioCircle}>
+                  {gender === "male" && <View style={styles.radioChecked} />}
+                </View>
+                <Text style={styles.maleText}>♂</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.radioButton}
+                onPress={() => setGender("female")}
+              >
+                <View style={styles.radioCircle}>
+                  {gender === "female" && <View style={styles.radioChecked} />}
+                </View>
+                <Text style={styles.femaleText}>♀</Text>
+              </Pressable>
             </View>
+
+            {/* 好きなこと入力 */}
+            <Text style={styles.label}>好きなこと</Text>
+            <TextInput
+              style={styles.input}
+              value={likes}
+              onChangeText={setLikes}
+              placeholder="好きなこと"
+            />
+
+            {/* 備考入力 */}
+            <Text style={styles.label}>備考</Text>
+            <TextInput
+              style={styles.textArea}
+              value={remarks}
+              onChangeText={setRemarks}
+              multiline={true}
+              numberOfLines={4}
+              placeholder="その他、何かあればご記入ください"
+            />
+
+            {/* 更新ボタン */}
+            <TouchableOpacity
+              style={[styles.updateButton, isLoading && styles.disabledButton]}
+              onPress={handleUpdate}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.updateButtonText}>更新する</Text>
+              )}
+            </TouchableOpacity>
           </View>
-        </Modal>
-
-        {/* 性別選択 */}
-        <View style={styles.radioContainer}>
-          <Pressable
-            style={styles.radioButton}
-            onPress={() => setGender("male")}
-          >
-            <View style={styles.radioCircle}>
-              {gender === "male" && <View style={styles.radioChecked} />}
-            </View>
-            <Text style={styles.maleText}>♂</Text>
-          </Pressable>
-
-          <Pressable
-            style={styles.radioButton}
-            onPress={() => setGender("female")}
-          >
-            <View style={styles.radioCircle}>
-              {gender === "female" && <View style={styles.radioChecked} />}
-            </View>
-            <Text style={styles.femaleText}>♀</Text>
-          </Pressable>
-        </View>
-
-        {/* 好きなこと入力 */}
-        <Text style={styles.label}>好きなこと</Text>
-        <TextInput
-          style={styles.input}
-          value={likes}
-          onChangeText={setLikes}
-          placeholder="好きなこと"
-        />
-
-        {/* 備考入力 */}
-        <Text style={styles.label}>備考</Text>
-        <TextInput
-          style={styles.textArea}
-          value={remarks}
-          onChangeText={setRemarks}
-          multiline={true}
-          numberOfLines={4}
-          placeholder="その他、何かあればご記入ください"
-        />
-
-        {/* 更新ボタン */}
-        <TouchableOpacity
-          style={[styles.updateButton, isLoading && styles.disabledButton]}
-          onPress={handleUpdate}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={styles.updateButtonText}>更新する</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "white",
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     padding: 25,
