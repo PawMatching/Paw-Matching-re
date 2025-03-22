@@ -206,18 +206,20 @@ export default function HomeScreen() {
     };
   }, [isWalking, userDog]);
 
-  // 画面がフォーカスされたときに残り時間を更新
+  // 画面がフォーカスされた時の処理
   useFocusEffect(
     useCallback(() => {
-      if (isWalking) {
-        console.log("画面フォーカス時: 残り時間を更新します");
-        updateRemainingTime();
+      console.log("画面がフォーカスされました");
+      // 認証済みでユーザーが存在する場合、データを取得
+      if (isAuthenticated && user) {
+        console.log("フォーカス時: ユーザーデータの再取得を試みます");
+        fetchUserData();
       }
 
       return () => {
-        // クリーンアップは不要
+        console.log("画面のフォーカスが外れました");
       };
-    }, [isWalking, userDog])
+    }, [isAuthenticated, user])
   );
 
   // ユーザーデータを取得する関数
@@ -286,22 +288,6 @@ export default function HomeScreen() {
       fetchUserData();
     }
   }, [user]);
-
-  // 画面がフォーカスされた時の処理
-  useFocusEffect(
-    useCallback(() => {
-      console.log("画面がフォーカスされました");
-      // すでにデータがある場合は再取得しない
-      if (!username && isAuthenticated && user) {
-        console.log("フォーカス時: ユーザーデータの再取得を試みます");
-        fetchUserData();
-      }
-
-      return () => {
-        console.log("画面のフォーカスが外れました");
-      };
-    }, [isAuthenticated, user, username])
-  );
 
   if (loading || authLoading) {
     return (
