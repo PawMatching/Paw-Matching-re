@@ -215,7 +215,7 @@ const MatchingSentScreen = () => {
                 ? "承認待ち"
                 : item.status === "accepted"
                 ? "承認済み"
-                : "却下されました"}
+                : "今回はタイミングが合わなかったようです。また次回にお願いしましょう！"}
             </Text>
             <Text style={styles.dateText}>
               {item.createdAt.toLocaleDateString()}

@@ -209,7 +209,7 @@ const SearchDogsScreen = ({
         const q = query(
           appliesRef,
           where("userID", "==", currentUser.uid),
-          where("status", "in", ["pending", "accepted"])
+          where("status", "in", ["pending", "accepted", "rejected"])
         );
 
         const querySnapshot = await getDocs(q);
@@ -220,16 +220,16 @@ const SearchDogsScreen = ({
         // 再申請可能になるまでの時間（ミリ秒）: 2時間 = 7,200,000ミリ秒
         const reapplyTimeLimit = 2 * 60 * 60 * 1000;
 
- 
         querySnapshot.forEach((doc) => {
           const data = doc.data();
           if (data.dogID) {
             // appliedAtタイムスタンプがある場合、時間経過をチェック
             if (data.appliedAt) {
               const appliedTime = data.appliedAt.toDate(); // FirestoreのタイムスタンプをDateに変換
-              const timeDifference = currentTime.getTime() - appliedTime.getTime();
-              
-              // 指定時間以内の申請のみを「申請済み」とする
+              const timeDifference =
+                currentTime.getTime() - appliedTime.getTime();
+
+              // 指定時間以内の申請（pendingまたはrejected）のみを「申請済み」とする
               if (timeDifference < reapplyTimeLimit) {
                 appliedIds[data.dogID] = true;
               }
@@ -239,15 +239,15 @@ const SearchDogsScreen = ({
             }
           }
         });
-  
+
         setAppliedDogIds(appliedIds);
       } catch (error) {
         console.error("Error checking apply statuses:", error);
       }
     };
-  
+
     checkApplyStatuses();
-  }, [currentUser, nearbyDogs]);  
+  }, [currentUser, nearbyDogs]);
 
   const navigateToDogProfile = (dog: Dog) => {
     navigation.navigate("DogDetail", { dog });
