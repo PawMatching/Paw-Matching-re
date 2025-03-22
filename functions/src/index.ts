@@ -233,9 +233,9 @@ export const onNewChatMessage = functions.firestore
     );
   });
 
-// 1時間ごとに実行されるスケジュール関数
+// 10分ごとに実行されるスケジュール関数
 export const resetWalkingStatus = functions.pubsub
-  .schedule("every 10 minutes") // 10分ごと →コストに応じて30分ごととかに変更すべきかも
+  .schedule("*/10 * * * *") // 10分ごと →コストに応じて30分ごととかに変更すべきかも
   .onRun(async () => {
     try {
       const db = admin.firestore();
