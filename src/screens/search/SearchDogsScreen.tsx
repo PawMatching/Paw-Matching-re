@@ -26,6 +26,7 @@ import {
   getDocs,
   doc,
   getDoc,
+  onSnapshot
 } from "firebase/firestore";
 import { Dog } from "../../types/dog";
 import { db } from "../../config/firebase";
@@ -77,6 +78,66 @@ const SearchDogsScreen = ({
       findNearbyDogs();
     }
   }, [isFocused]);
+
+   // 申請状態を監視するリアルタイムリスナーを設定
+   useEffect(() => {
+    if (!currentUser || !isFocused) return;
+
+    const db = getFirestore();
+    const appliesRef = collection(db, "applies");
+    
+    // 現在のユーザーが行った申請のクエリ
+    const q = query(
+      appliesRef,
+      where("userID", "==", currentUser.uid),
+      where("status", "in", ["pending", "accepted", "rejected"])
+    );
+
+    // リアルタイムリスナーを設定
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const appliedIds: Record<string, boolean> = {};
+      
+      // 現在の時刻
+      const currentTime = new Date();
+      // 再申請可能になるまでの時間（ミリ秒）: 2時間 = 7,200,000ミリ秒
+      const reapplyTimeLimit = 2 * 60 * 60 * 1000;
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.dogID) {
+          // rejectedステータスの申請は表示しない
+          if (data.status === "rejected") {
+            return;
+          }
+          
+          // pendingまたはacceptedの場合
+          if (data.appliedAt) {
+            const appliedTime = data.appliedAt.toDate(); // FirestoreのタイムスタンプをDateに変換
+            const timeDifference = currentTime.getTime() - appliedTime.getTime();
+            
+            // 2時間以内の申請のみを「申請済み」として扱う
+            if (timeDifference < reapplyTimeLimit) {
+              appliedIds[data.dogID] = true;
+            }
+          } else {
+            // appliedAtがない古いデータの場合は通常通り「申請済み」とする
+            appliedIds[data.dogID] = true;
+          }
+        }
+      });
+      
+      console.log("リアルタイム更新: 申請済み犬の数", Object.keys(appliedIds).length);
+      setAppliedDogIds(appliedIds);
+    }, (error) => {
+      console.error("Firestore リスナーエラー:", error);
+    });
+    
+    // クリーンアップ関数でリスナーを解除
+    return () => {
+      unsubscribe();
+      console.log("Firestore リスナー解除");
+    };
+  }, [currentUser, isFocused]); // 依存配列にisFocusedを追加
 
   // 位置情報を取得する関数
   const getCurrentLocation = async () => {
@@ -198,56 +259,56 @@ const SearchDogsScreen = ({
     }
   };
 
-  useEffect(() => {
-    if (!currentUser || nearbyDogs.length === 0) return;
+  // useEffect(() => {
+  //   if (!currentUser || nearbyDogs.length === 0) return;
 
-    const checkApplyStatuses = async () => {
-      try {
-        const db = getFirestore();
-        const appliesRef = collection(db, "applies");
+  //   const checkApplyStatuses = async () => {
+  //     try {
+  //       const db = getFirestore();
+  //       const appliesRef = collection(db, "applies");
 
-        const q = query(
-          appliesRef,
-          where("userID", "==", currentUser.uid),
-          where("status", "in", ["pending", "accepted", "rejected"])
-        );
+  //       const q = query(
+  //         appliesRef,
+  //         where("userID", "==", currentUser.uid),
+  //         where("status", "in", ["pending", "accepted", "rejected"])
+  //       );
 
-        const querySnapshot = await getDocs(q);
-        const appliedIds: Record<string, boolean> = {};
+  //       const querySnapshot = await getDocs(q);
+  //       const appliedIds: Record<string, boolean> = {};
 
-        // 現在の時刻
-        const currentTime = new Date();
-        // 再申請可能になるまでの時間（ミリ秒）: 2時間 = 7,200,000ミリ秒
-        const reapplyTimeLimit = 2 * 60 * 60 * 1000;
+  //       // 現在の時刻
+  //       const currentTime = new Date();
+  //       // 再申請可能になるまでの時間（ミリ秒）: 2時間 = 7,200,000ミリ秒
+  //       const reapplyTimeLimit = 2 * 60 * 60 * 1000;
 
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.dogID) {
-            // appliedAtタイムスタンプがある場合、時間経過をチェック
-            if (data.appliedAt) {
-              const appliedTime = data.appliedAt.toDate(); // FirestoreのタイムスタンプをDateに変換
-              const timeDifference =
-                currentTime.getTime() - appliedTime.getTime();
+  //       querySnapshot.forEach((doc) => {
+  //         const data = doc.data();
+  //         if (data.dogID) {
+  //           // appliedAtタイムスタンプがある場合、時間経過をチェック
+  //           if (data.appliedAt) {
+  //             const appliedTime = data.appliedAt.toDate(); // FirestoreのタイムスタンプをDateに変換
+  //             const timeDifference =
+  //               currentTime.getTime() - appliedTime.getTime();
 
-              // 指定時間以内の申請（pendingまたはrejected）のみを「申請済み」とする
-              if (timeDifference < reapplyTimeLimit) {
-                appliedIds[data.dogID] = true;
-              }
-            } else {
-              // appliedAtがない古いデータの場合は通常通り「申請済み」とする
-              appliedIds[data.dogID] = true;
-            }
-          }
-        });
+  //             // 指定時間以内の申請（pendingまたはrejected）のみを「申請済み」とする
+  //             if (timeDifference < reapplyTimeLimit) {
+  //               appliedIds[data.dogID] = true;
+  //             }
+  //           } else {
+  //             // appliedAtがない古いデータの場合は通常通り「申請済み」とする
+  //             appliedIds[data.dogID] = true;
+  //           }
+  //         }
+  //       });
 
-        setAppliedDogIds(appliedIds);
-      } catch (error) {
-        console.error("Error checking apply statuses:", error);
-      }
-    };
+  //       setAppliedDogIds(appliedIds);
+  //     } catch (error) {
+  //       console.error("Error checking apply statuses:", error);
+  //     }
+  //   };
 
-    checkApplyStatuses();
-  }, [currentUser, nearbyDogs]);
+  //   checkApplyStatuses();
+  // }, [currentUser, nearbyDogs]);
 
   const navigateToDogProfile = (dog: Dog) => {
     navigation.navigate("DogDetail", { dog });

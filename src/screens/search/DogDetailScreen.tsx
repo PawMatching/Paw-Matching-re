@@ -22,6 +22,7 @@ import {
   where,
   getDocs,
   serverTimestamp,
+  onSnapshot,
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { Dog } from "../../types/dog";
@@ -48,6 +49,55 @@ const DogDetailScreen = () => {
   const auth = getAuth();
   const currentUser = auth.currentUser;
 
+   // リアルタイムリスナーでこの犬に対する申請状態を監視
+   useEffect(() => {
+    if (!currentUser) return;
+
+    const db = getFirestore();
+    const appliesRef = collection(db, "applies");
+    
+    // この特定の犬に対するユーザーの申請クエリ
+    const q = query(
+      appliesRef,
+      where("userID", "==", currentUser.uid),
+      where("dogID", "==", dog.id),
+      where("status", "in", ["pending", "accepted", "rejected"])
+    );
+
+    // リアルタイムリスナーを設定
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      let isCurrentlyApplied = false;
+      
+      // 現在の時刻
+      const currentTime = new Date();
+      const reapplyTimeLimit = 2 * 60 * 60 * 1000;
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        
+        // rejectedステータスの場合は表示しない
+        if (data.status === "rejected") {
+          return;
+        }
+        
+        if (data.appliedAt) {
+          const appliedTime = data.appliedAt.toDate();
+          const timeDifference = currentTime.getTime() - appliedTime.getTime();
+          
+          if (timeDifference < reapplyTimeLimit) {
+            isCurrentlyApplied = true;
+          }
+        } else {
+          isCurrentlyApplied = true;
+        }
+      });
+
+      setIsApplied(isCurrentlyApplied);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser, dog.id]);
+
   useEffect(() => {
     const fetchOwnerData = async () => {
       setIsLoading(true);
@@ -69,53 +119,53 @@ const DogDetailScreen = () => {
     fetchOwnerData();
   }, [dog.userID]);
 
-  useEffect(() => {
-    const checkApplyStatus = async () => {
-      if (!currentUser) return;
+  // useEffect(() => {
+  //   const checkApplyStatus = async () => {
+  //     if (!currentUser) return;
 
-      try {
-        const db = getFirestore();
-        const appliesRef = collection(db, "applies");
-        const q = query(
-          appliesRef,
-          where("userID", "==", currentUser.uid),
-          where("dogID", "==", dog.id),
-          where("status", "in", ["pending", "accepted", "rejected"])
-        );
+  //     try {
+  //       const db = getFirestore();
+  //       const appliesRef = collection(db, "applies");
+  //       const q = query(
+  //         appliesRef,
+  //         where("userID", "==", currentUser.uid),
+  //         where("dogID", "==", dog.id),
+  //         where("status", "in", ["pending", "accepted", "rejected"])
+  //       );
 
-        const querySnapshot = await getDocs(q);
-        let isCurrentlyApplied = false;
+  //       const querySnapshot = await getDocs(q);
+  //       let isCurrentlyApplied = false;
 
-        // 現在の時刻
-        const currentTime = new Date();
-        // 再申請可能になるまでの時間（ミリ秒）: 2時間 = 7,200,000ミリ秒
-        const reapplyTimeLimit = 2 * 60 * 60 * 1000;
+  //       // 現在の時刻
+  //       const currentTime = new Date();
+  //       // 再申請可能になるまでの時間（ミリ秒）: 2時間 = 7,200,000ミリ秒
+  //       const reapplyTimeLimit = 2 * 60 * 60 * 1000;
 
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.appliedAt) {
-            const appliedTime = data.appliedAt.toDate(); // FirestoreのタイムスタンプをDateに変換
-            const timeDifference =
-              currentTime.getTime() - appliedTime.getTime();
+  //       querySnapshot.forEach((doc) => {
+  //         const data = doc.data();
+  //         if (data.appliedAt) {
+  //           const appliedTime = data.appliedAt.toDate(); // FirestoreのタイムスタンプをDateに変換
+  //           const timeDifference =
+  //             currentTime.getTime() - appliedTime.getTime();
 
-            // 指定時間以内の申請（pendingまたはrejected）のみを「申請済み」とする
-            if (timeDifference < reapplyTimeLimit) {
-              isCurrentlyApplied = true;
-            }
-          } else {
-            // appliedAtがない古いデータの場合は通常通り「申請済み」とする
-            isCurrentlyApplied = true;
-          }
-        });
+  //           // 指定時間以内の申請（pendingまたはrejected）のみを「申請済み」とする
+  //           if (timeDifference < reapplyTimeLimit) {
+  //             isCurrentlyApplied = true;
+  //           }
+  //         } else {
+  //           // appliedAtがない古いデータの場合は通常通り「申請済み」とする
+  //           isCurrentlyApplied = true;
+  //         }
+  //       });
 
-        setIsApplied(isCurrentlyApplied);
-      } catch (error) {
-        console.error("Error checking apply status:", error);
-      }
-    };
+  //       setIsApplied(isCurrentlyApplied);
+  //     } catch (error) {
+  //       console.error("Error checking apply status:", error);
+  //     }
+  //   };
 
-    checkApplyStatus();
-  }, [currentUser, dog.id]);
+  //   checkApplyStatus();
+  // }, [currentUser, dog.id]);
 
   const sendPettingRequest = async () => {
     if (!currentUser) {
