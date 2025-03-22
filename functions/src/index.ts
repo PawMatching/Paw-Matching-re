@@ -235,7 +235,7 @@ export const onNewChatMessage = functions.firestore
 
 // 1時間ごとに実行されるスケジュール関数
 export const resetWalkingStatus = functions.pubsub
-  .schedule("every 30 minutes") // コストに応じてここは30分ごとに変更
+  .schedule("every 10 minutes") // 10分ごと →コストに応じて30分ごととかに変更すべきかも
   .onRun(async () => {
     try {
       const db = admin.firestore();
@@ -298,99 +298,73 @@ export const resetWalkingStatus = functions.pubsub
     }
   });
 
-// 未処理のモフモフ申請を一日の終わりにrejectする関数
+// クリーンアップ関数を統合してみる
 export const cleanupPendingRequests = functions.pubsub
-  .schedule("0 0 * * *") // 毎日午前0時に実行（UTCタイムゾーン）
-  .timeZone("Asia/Tokyo") // 日本時間に設定
-  .onRun(async () => {
-    try {
-      const db = admin.firestore();
-
-      // 現在の日付の終わりを計算
-      const now = admin.firestore.Timestamp.now();
-      const today = new Date(now.toDate());
-      today.setHours(23, 59, 59, 999); // その日の23:59:59.999に設定
-
-      // 期限切れの申請を検索
-      const snapshot = await db
-        .collection("applies")
-        .where("status", "==", "pending")
-        .where("expiresAt", "<", today)
-        .get();
-
-      if (snapshot.empty) {
-        logger.info("期限切れのモフモフ申請はありません");
-        return null;
-      }
-
-      // バッチ処理で一括更新
-      const batch = db.batch();
-      snapshot.docs.forEach((doc) => {
-        batch.update(doc.ref, {
-          status: "rejected",
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          autoRejected: true, // 自動拒否されたことを示すフラグ
-          rejectionReason: "期限切れのため自動的に拒否されました",
-        });
-      });
-
-      await batch.commit();
-      logger.info(`${snapshot.size}件の期限切れモフモフ申請をrejectしました`);
-      return null;
-    } catch (error) {
-      logger.error(
-        "モフモフ申請の自動拒否処理中にエラーが発生しました:",
-        error
-      );
-      return null;
-    }
-  });
-
-// 2時間ごとに古いpending申請をrejectする関数
-export const cleanupOldPendingRequests = functions.pubsub
   .schedule("0 */2 * * *") // 2時間ごとに実行
   .timeZone("Asia/Tokyo")
   .onRun(async () => {
     try {
       const db = admin.firestore();
+      const now = admin.firestore.Timestamp.now();
 
-      // 2時間前の時刻を計算
+      // 1. 日付変更時の処理（古い仕様）- 当日中に期限切れの申請を処理
+      const today = new Date(now.toDate());
+      today.setHours(23, 59, 59, 999); // その日の23:59:59.999に設定
+
+      const expiredToday = await db
+        .collection("applies")
+        .where("status", "==", "pending")
+        .where("expiresAt", "<", today)
+        .get();
+
+      // 2. 2時間経過した申請を処理（新しい仕様）
       const twoHoursAgo = new Date();
       twoHoursAgo.setHours(twoHoursAgo.getHours() - 2);
 
-      // 2時間以上経過したpending申請を検索
-      const snapshot = await db
+      const oldPending = await db
         .collection("applies")
         .where("status", "==", "pending")
         .where("appliedAt", "<", twoHoursAgo)
         .get();
 
-      if (snapshot.empty) {
-        logger.info("2時間以上経過したpending申請はありません");
-        return null;
-      }
-
       // バッチ処理で一括更新
       const batch = db.batch();
-      snapshot.docs.forEach((doc) => {
-        batch.update(doc.ref, {
-          status: "rejected",
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          autoRejected: true,
-          rejectionReason: "2時間経過のため自動的に拒否されました",
-        });
-      });
 
+      // 当日中に期限切れの申請を処理
+      if (!expiredToday.empty) {
+        expiredToday.docs.forEach((doc) => {
+          batch.update(doc.ref, {
+            status: "rejected",
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            autoRejected: true,
+            rejectionReason: "期限切れのため自動的に拒否されました",
+          });
+        });
+        logger.info(`${expiredToday.size}件の期限切れモフモフ申請をrejectしました`);
+      }
+
+      // 2時間経過した申請を処理
+      if (!oldPending.empty) {
+        oldPending.docs.forEach((doc) => {
+          batch.update(doc.ref, {
+            status: "rejected",
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            autoRejected: true,
+            rejectionReason: "2時間経過のため自動的に拒否されました",
+          });
+        });
+        logger.info(`${oldPending.size}件の2時間以上経過したpending申請をrejectしました`);
+      }
+      // 両方の条件に一致する申請がない場合はバッチ処理をスキップ
+      if (expiredToday.empty && oldPending.empty) {
+        logger.info("処理対象のモフモフ申請はありません");
+        return null;
+      }
+      // バッチ処理を実行
       await batch.commit();
-      logger.info(
-        `${snapshot.size}件の2時間以上経過したpending申請をrejectしました`
-      );
       return null;
     } catch (error) {
-      logger.error(
-        "古いpending申請の自動拒否処理中にエラーが発生しました:",
-        error
-      );
+      logger.error("モフモフ申請の自動拒否処理中にエラーが発生しました:", error);
       return null;
     }
   });
