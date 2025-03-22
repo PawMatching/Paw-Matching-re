@@ -49,13 +49,13 @@ const DogDetailScreen = () => {
   const auth = getAuth();
   const currentUser = auth.currentUser;
 
-   // リアルタイムリスナーでこの犬に対する申請状態を監視
-   useEffect(() => {
+  // リアルタイムリスナーでこの犬に対する申請状態を監視
+  useEffect(() => {
     if (!currentUser) return;
 
     const db = getFirestore();
     const appliesRef = collection(db, "applies");
-    
+
     // この特定の犬に対するユーザーの申請クエリ
     const q = query(
       appliesRef,
@@ -67,23 +67,23 @@ const DogDetailScreen = () => {
     // リアルタイムリスナーを設定
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       let isCurrentlyApplied = false;
-      
+
       // 現在の時刻
       const currentTime = new Date();
       const reapplyTimeLimit = 2 * 60 * 60 * 1000;
 
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        
+
         // rejectedステータスの場合は表示しない
         if (data.status === "rejected") {
           return;
         }
-        
+
         if (data.appliedAt) {
           const appliedTime = data.appliedAt.toDate();
           const timeDifference = currentTime.getTime() - appliedTime.getTime();
-          
+
           if (timeDifference < reapplyTimeLimit) {
             isCurrentlyApplied = true;
           }
@@ -191,7 +191,7 @@ const DogDetailScreen = () => {
           dog.dogname
         }ちゃんをモフモフしたいと思っています！`,
         appliedAt: serverTimestamp(),
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
         location: {
           latitude: dog.latitude,
           longitude: dog.longitude,
