@@ -270,12 +270,10 @@ export const resetWalkingStatus = functions.pubsub
         });
 
         // Realtime Databaseの更新も行う
-        const rtdbUpdate = rtdb
-          .ref(`locations/dogs/${dogId}`)
-          .update({
-            isWalking: false,
-            lastUpdated: new Date().toISOString(),
-          });
+        const rtdbUpdate = rtdb.ref(`locations/dogs/${dogId}`).update({
+          isWalking: false,
+          lastUpdated: new Date().toISOString(),
+        });
 
         updates.push(rtdbUpdate);
       });
@@ -287,10 +285,15 @@ export const resetWalkingStatus = functions.pubsub
         await Promise.all(updates);
       }
 
-      console.log(`${dogsSnapshot.size}匹の犬のお散歩ステータスをリセットしました`);
+      console.log(
+        `${dogsSnapshot.size}匹の犬のお散歩ステータスをリセットしました`
+      );
       return null;
     } catch (error) {
-      console.error("お散歩ステータスのリセット中にエラーが発生しました:", error);
+      console.error(
+        "お散歩ステータスのリセット中にエラーが発生しました:",
+        error
+      );
       return null;
     }
   });
@@ -335,7 +338,59 @@ export const cleanupPendingRequests = functions.pubsub
       logger.info(`${snapshot.size}件の期限切れモフモフ申請をrejectしました`);
       return null;
     } catch (error) {
-      logger.error("モフモフ申請の自動拒否処理中にエラーが発生しました:", error);
+      logger.error(
+        "モフモフ申請の自動拒否処理中にエラーが発生しました:",
+        error
+      );
+      return null;
+    }
+  });
+
+// 2時間ごとに古いpending申請をrejectする関数
+export const cleanupOldPendingRequests = functions.pubsub
+  .schedule("0 */2 * * *") // 2時間ごとに実行
+  .timeZone("Asia/Tokyo")
+  .onRun(async () => {
+    try {
+      const db = admin.firestore();
+
+      // 2時間前の時刻を計算
+      const twoHoursAgo = new Date();
+      twoHoursAgo.setHours(twoHoursAgo.getHours() - 2);
+
+      // 2時間以上経過したpending申請を検索
+      const snapshot = await db
+        .collection("applies")
+        .where("status", "==", "pending")
+        .where("appliedAt", "<", twoHoursAgo)
+        .get();
+
+      if (snapshot.empty) {
+        logger.info("2時間以上経過したpending申請はありません");
+        return null;
+      }
+
+      // バッチ処理で一括更新
+      const batch = db.batch();
+      snapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, {
+          status: "rejected",
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          autoRejected: true,
+          rejectionReason: "2時間経過のため自動的に拒否されました",
+        });
+      });
+
+      await batch.commit();
+      logger.info(
+        `${snapshot.size}件の2時間以上経過したpending申請をrejectしました`
+      );
+      return null;
+    } catch (error) {
+      logger.error(
+        "古いpending申請の自動拒否処理中にエラーが発生しました:",
+        error
+      );
       return null;
     }
   });
