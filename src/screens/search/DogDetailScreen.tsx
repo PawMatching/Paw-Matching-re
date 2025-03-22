@@ -80,7 +80,7 @@ const DogDetailScreen = () => {
           appliesRef,
           where("userID", "==", currentUser.uid),
           where("dogID", "==", dog.id),
-          where("status", "in", ["pending", "accepted"])
+          where("status", "in", ["pending", "accepted", "rejected"])
         );
 
         const querySnapshot = await getDocs(q);
@@ -98,7 +98,7 @@ const DogDetailScreen = () => {
             const timeDifference =
               currentTime.getTime() - appliedTime.getTime();
 
-            // 指定時間以内の申請のみを「申請済み」とする
+            // 指定時間以内の申請（pendingまたはrejected）のみを「申請済み」とする
             if (timeDifference < reapplyTimeLimit) {
               isCurrentlyApplied = true;
             }
