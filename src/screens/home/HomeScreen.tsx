@@ -7,6 +7,7 @@ import {
   Switch,
   Alert,
   TouchableOpacity,
+  Dimensions,
 } from "react-native";
 import {
   doc,
@@ -25,6 +26,7 @@ import { HomeStackParamList } from "../../navigation/types";
 import * as Location from "expo-location";
 import { getDatabase, ref, set } from "firebase/database";
 import { useAuthState } from "../../hooks/useAuthState";
+import LottieView from "lottie-react-native";
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 
@@ -311,53 +313,64 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.welcomeText}>
-        ようこそ、{username ? username : ""}さん！
-      </Text>
+      <View style={styles.contentContainer}>
+        <Text style={styles.welcomeText}>
+          ようこそ、{username ? username : ""}さん！
+        </Text>
 
-      <TouchableOpacity
-        style={styles.searchButton}
-        onPress={() => navigation.navigate("Search")}
-      >
-        <Text style={styles.searchButtonText}>わんちゃんを探す</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.searchButton}
+          onPress={() => navigation.navigate("Search")}
+        >
+          <Text style={styles.searchButtonText}>わんちゃんを探す</Text>
+        </TouchableOpacity>
 
-      {/* isOwnerがfalseの場合のみ犬登録ボタンを表示 */}
-      {!isOwner && (
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.registerButton}
-            onPress={() => navigation.navigate("RegisterDog")}
-          >
-            <Text style={styles.registerButtonText}>わんちゃんを登録する</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* 以下はわんちゃんを登録済みの場合のみ表示させる */}
-      {isOwner && userDog && (
-        <View style={styles.walkingContainer}>
-          <View style={styles.walkingStatusContainer}>
-            <View>
-              <Text style={styles.walkingText}>
-                {userDog.dogname}
-                {isWalking ? "とお散歩中" : "はお留守番中"}
+        {!isOwner && (
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.registerButton}
+              onPress={() => navigation.navigate("RegisterDog")}
+            >
+              <Text style={styles.registerButtonText}>
+                わんちゃんを登録する
               </Text>
-              {isWalking && remainingTime !== null && (
-                <Text style={styles.timerText}>
-                  自動終了まで: 約{remainingTime}分
-                </Text>
-              )}
-            </View>
-            <Switch
-              value={isWalking}
-              onValueChange={toggleWalkingStatus}
-              trackColor={{ false: "#767577", true: "#ffd8a1" }}
-              thumbColor={isWalking ? "#FF9500" : "#f4f3f4"}
-            />
+            </TouchableOpacity>
           </View>
-        </View>
-      )}
+        )}
+
+        {isOwner && userDog && (
+          <View style={styles.walkingContainer}>
+            <View style={styles.walkingStatusContainer}>
+              <View>
+                <Text style={styles.walkingText}>
+                  {userDog.dogname}
+                  {isWalking ? "とお散歩中" : "はお留守番中"}
+                </Text>
+                {isWalking && remainingTime !== null && (
+                  <Text style={styles.timerText}>
+                    自動終了まで: 約{remainingTime}分
+                  </Text>
+                )}
+              </View>
+              <Switch
+                value={isWalking}
+                onValueChange={toggleWalkingStatus}
+                trackColor={{ false: "#767577", true: "#ffd8a1" }}
+                thumbColor={isWalking ? "#FF9500" : "#f4f3f4"}
+              />
+            </View>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.animationContainer}>
+        <LottieView
+          source={require("../../assets/animations/dog-walking.json")}
+          autoPlay
+          loop
+          style={styles.animation}
+        />
+      </View>
     </View>
   );
 }
@@ -365,8 +378,13 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#fff",
+  },
+  contentContainer: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    paddingBottom: 20,
   },
   welcomeText: {
     fontSize: 24,
@@ -421,5 +439,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#666",
     marginTop: 4,
+  },
+  animationContainer: {
+    height: 200,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  animation: {
+    width: Dimensions.get("window").width * 0.8,
+    height: 200,
   },
 });
