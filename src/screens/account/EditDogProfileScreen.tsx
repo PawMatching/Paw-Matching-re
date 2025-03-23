@@ -148,11 +148,9 @@ const EditDogProfileScreen = () => {
 
     try {
       setIsLoading(true);
-      console.log("犬のプロフィール更新処理を開始します");
 
       // まずドキュメントを更新
       const dogDocRef = doc(db, "dogs", route.params.dogId);
-      console.log("ドキュメントの更新準備完了:", route.params.dogId);
 
       await updateDoc(dogDocRef, {
         dogname: name,
@@ -163,18 +161,13 @@ const EditDogProfileScreen = () => {
         updatedAt: new Date(),
         // 既存の画像URLはそのまま保持
       });
-      console.log("犬のドキュメントを基本情報で更新しました");
 
       // 画像がローカルファイルの場合のみアップロード
       let imageUrl = image;
       if (image && !image.startsWith("http")) {
         try {
-          console.log("画像アップロード処理を開始します");
-
           // Firestoreの更新が反映されるまで待つ
-          console.log("Firestoreの更新を待機中...");
           await new Promise((resolve) => setTimeout(resolve, 1000));
-          console.log("待機完了");
 
           // ドキュメントの存在を確認
           const dogDoc = await getDoc(dogDocRef);
@@ -184,21 +177,18 @@ const EditDogProfileScreen = () => {
 
           // ドキュメントの内容を確認
           const dogData = dogDoc.data();
-          console.log("ドキュメントの内容:", dogData);
 
           if (dogData.userID !== user.uid) {
             throw new Error("ユーザーIDが一致しません");
           }
 
           imageUrl = await uploadImage(image, route.params.dogId);
-          console.log("画像のアップロードに成功しました。URL:", imageUrl);
 
           // 画像URLでドキュメントを更新
           await updateDoc(dogDocRef, {
             profileImage: imageUrl,
             updatedAt: new Date(),
           });
-          console.log("犬のドキュメントを画像URLで更新しました");
         } catch (uploadError) {
           console.error("画像アップロードエラー発生:", uploadError);
           Alert.alert(
@@ -206,10 +196,6 @@ const EditDogProfileScreen = () => {
             "プロフィール画像のアップロードに失敗しました。後でもう一度お試しください。"
           );
         }
-      } else {
-        console.log(
-          "画像はHTTP URL形式か選択されていないため、アップロードはスキップします"
-        );
       }
 
       Alert.alert("更新完了", "わんちゃんのプロフィールを更新しました", [
@@ -223,15 +209,8 @@ const EditDogProfileScreen = () => {
         },
       ]);
     } catch (error) {
-      console.error("更新エラー（詳細）:", error);
-      if (error instanceof Error) {
-        console.error("エラーメッセージ:", error.message);
-        console.error("エラー名:", error.name);
-      }
-      Alert.alert(
-        "エラー",
-        "プロフィールの更新に失敗しました。もう一度お試しください。"
-      );
+      console.error("プロフィールの更新に失敗しました:", error);
+      Alert.alert("エラー", "プロフィールの更新に失敗しました");
     } finally {
       setIsLoading(false);
     }

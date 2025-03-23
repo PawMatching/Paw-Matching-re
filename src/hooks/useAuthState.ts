@@ -6,15 +6,21 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   User,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
 } from "firebase/auth";
 import { auth } from "../config/firebase";
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from "expo-secure-store";
+import * as AsyncStorage from "@react-native-async-storage/async-storage";
 
 const USER_EMAIL_KEY = "auth_user_email";
 const USER_PASSWORD_KEY = "auth_user_password";
 
 // セキュアな方法でログイン情報を保存
-const saveCredentials = async (email: string | null, password: string | null) => {
+const saveCredentials = async (
+  email: string | null,
+  password: string | null
+) => {
   try {
     if (email && password) {
       await SecureStore.setItemAsync(USER_EMAIL_KEY, email);
@@ -40,14 +46,14 @@ export const useAuthState = () => {
     try {
       const savedEmail = await SecureStore.getItemAsync(USER_EMAIL_KEY);
       const savedPassword = await SecureStore.getItemAsync(USER_PASSWORD_KEY);
-      
+
       if (!savedEmail || !savedPassword) {
         console.log("保存されたログイン情報がありません");
         return false;
       }
 
       console.log("保存されたログイン情報で再認証を試みます");
-      
+
       try {
         // 保存されたログイン情報で再ログイン
         const userCredential = await signInWithEmailAndPassword(
@@ -77,7 +83,7 @@ export const useAuthState = () => {
         // Firebase Authの状態変更を監視
         unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
           console.log("Auth状態変更:", firebaseUser ? "認証済み" : "未認証");
-          
+
           if (firebaseUser) {
             setUser(firebaseUser);
             setIsAuthenticated(true);
@@ -120,7 +126,11 @@ export const useAuthState = () => {
   const signUp = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const response = await createUserWithEmailAndPassword(auth, email, password);
+      const response = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       // 新規登録成功時にログイン情報を保存
       await saveCredentials(email, password);
       return response.user;
@@ -148,6 +158,55 @@ export const useAuthState = () => {
     }
   };
 
+  const storeCredential = async (email: string, password: string) => {
+    try {
+      const userCredential = { email, password };
+      await AsyncStorage.setItem(
+        "userCredential",
+        JSON.stringify(userCredential)
+      );
+      // ログイン情報を安全に保存しました
+    } catch (error) {
+      console.error("ログイン情報の保存に失敗しました:", error);
+    }
+  };
+
+  const clearStoredCredential = async () => {
+    try {
+      await AsyncStorage.removeItem("userCredential");
+      // ログイン情報を削除しました
+    } catch (error) {
+      console.error("ログイン情報の削除に失敗しました:", error);
+    }
+  };
+
+  const reauthenticateWithStoredCredential = async () => {
+    try {
+      const storedCredential = await AsyncStorage.getItem("userCredential");
+      if (!storedCredential) {
+        // 保存されたログイン情報がありません
+        return false;
+      }
+
+      const userCredential = JSON.parse(storedCredential);
+      // 保存されたログイン情報で再認証を試みます
+      const credential = EmailAuthProvider.credential(
+        userCredential.email,
+        userCredential.password
+      );
+
+      const userCredentialResult = await reauthenticateWithCredential(
+        auth.currentUser!,
+        credential
+      );
+      // 自動ログインに成功しました
+      return true;
+    } catch (error) {
+      console.error("再認証に失敗しました:", error);
+      return false;
+    }
+  };
+
   return {
     isAuthenticated,
     isLoading,
@@ -155,6 +214,9 @@ export const useAuthState = () => {
     signIn,
     signUp,
     signOut,
-    tryRestoreAuth
+    tryRestoreAuth,
+    storeCredential,
+    clearStoredCredential,
+    reauthenticateWithStoredCredential,
   };
 };

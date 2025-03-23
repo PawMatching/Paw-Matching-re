@@ -7,7 +7,7 @@ import { useAuthState } from "./src/hooks/useAuthState";
 import { View, ActivityIndicator, Text } from "react-native";
 import * as Notifications from "expo-notifications";
 import {
-  registerForPushNotificationsAsync,
+  registerForPushNotifications,
   addNotificationReceivedListener,
   addNotificationResponseReceivedListener,
 } from "./src/utils/notifications";
@@ -15,6 +15,7 @@ import { doc, setDoc } from "firebase/firestore";
 import { db } from "./src/config/firebase";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type RootStackParamList = {
   Chat: {
@@ -74,7 +75,7 @@ function NotificationHandler() {
             });
             break;
           default:
-            console.log("未対応の通知タイプ:", type);
+            console.error("未対応の通知タイプ:", type);
         }
       }
     );
@@ -92,13 +93,82 @@ export default function App() {
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
 
+  const handleNotification = (notification: Notifications.Notification) => {
+    const type = notification.request.content.data?.type;
+    if (!type) {
+      console.error("通知タイプが指定されていません");
+      return;
+    }
+
+    switch (type) {
+      case "match_request":
+        // マッチングリクエストの処理
+        break;
+      case "match_accepted":
+        // マッチング承認の処理
+        break;
+      case "match_rejected":
+        // マッチング拒否の処理
+        break;
+      case "chat_message":
+        // チャットメッセージの処理
+        break;
+      default:
+        console.error("未対応の通知タイプ:", type);
+    }
+  };
+
+  const handleNotificationResponse = (
+    response: Notifications.NotificationResponse
+  ) => {
+    const type = response.notification.request.content.data?.type;
+    if (!type) {
+      console.error("通知タイプが指定されていません");
+      return;
+    }
+
+    switch (type) {
+      case "match_request":
+        // マッチングリクエストの処理
+        break;
+      case "match_accepted":
+        // マッチング承認の処理
+        break;
+      case "match_rejected":
+        // マッチング拒否の処理
+        break;
+      case "chat_message":
+        // チャットメッセージの処理
+        break;
+      default:
+        console.error("未対応の通知タイプ:", type);
+    }
+  };
+
+  useEffect(() => {
+    const registerForPushNotifications = async () => {
+      try {
+        const token = await registerForPushNotifications();
+        if (token) {
+          await AsyncStorage.setItem("expoPushToken", token);
+        }
+      } catch (error) {
+        console.error("プッシュ通知の登録に失敗しました:", error);
+      }
+    };
+
+    registerForPushNotifications();
+  }, []);
+
   useEffect(() => {
     // アプリの初期化処理
     async function prepare() {
       try {
         // プッシュ通知の初期化
-        const token = await registerForPushNotificationsAsync();
-        setExpoPushToken(token);
+        const token = await registerForPushNotifications();
+        if (token) {
+          setExpoPushToken(token);
+        }
 
         // 通知受信時のリスナーを設定
         notificationListener.current = addNotificationReceivedListener(
@@ -106,7 +176,6 @@ export default function App() {
             const { type } = notification.request.content.data as {
               type: string;
             };
-            console.log("通知を受信しました:", type);
           }
         );
 
@@ -116,7 +185,6 @@ export default function App() {
             const { type } = response.notification.request.content.data as {
               type: string;
             };
-            console.log("通知がタップされました:", type);
           }
         );
       } catch (e) {

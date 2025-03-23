@@ -115,64 +115,47 @@ const RegisterDogScreen = () => {
 
     try {
       setIsLoading(true);
-      console.log("犬の登録処理を開始します");
 
-      // まずFirestoreドキュメントを作成
-      const dogCollectionRef = collection(db, "dogs");
-      const dogDocRef = await addDoc(dogCollectionRef, {
+      // 犬のドキュメントを作成
+      const dogRef = await addDoc(collection(db, "dogs"), {
         userID: user.uid,
         dogname: name,
         age: parseInt(age),
         sex: gender,
         likes: likes,
         notes: remarks,
-        profileImage: null, // まずnullに設定
-        isWalking: false, // 初期値を設定
-        latitude: 0, // 初期値を設定
-        longitude: 0, // 初期値を設定
         createdAt: new Date(),
         updatedAt: new Date(),
       });
 
-      // ドキュメントIDを取得 - この部分が重要
-      const dogId = dogDocRef.id;
-      console.log("ドキュメントの作成完了。dogId:", dogId);
+      const dogId = dogRef.id;
 
-      // Firestoreドキュメント作成後に画像をアップロード
-      let imageUrl = null;
+      // 画像が選択されている場合、アップロード
       if (image) {
         try {
-          console.log("画像アップロード処理を開始します");
-
           // Firestoreの更新が反映されるまで待つ
-          console.log("Firestoreの更新を待機中...");
           await new Promise((resolve) => setTimeout(resolve, 1000));
-          console.log("待機完了");
 
           // ドキュメントの存在を確認
-          const dogDoc = await getDoc(dogDocRef);
+          const dogDoc = await getDoc(dogRef);
           if (!dogDoc.exists()) {
             throw new Error("ドキュメントが見つかりません");
           }
 
           // ドキュメントの内容を確認
           const dogData = dogDoc.data();
-          console.log("ドキュメントの内容:", dogData);
 
           if (dogData.userID !== user.uid) {
             throw new Error("ユーザーIDが一致しません");
           }
 
-          // ここで正しいdogIdを渡す
-          imageUrl = await uploadImage(image, dogId);
-          console.log("画像のアップロードに成功しました。URL:", imageUrl);
+          const imageUrl = await uploadImage(image, dogId);
 
           // 画像URLでドキュメントを更新
-          await updateDoc(dogDocRef, {
+          await updateDoc(dogRef, {
             profileImage: imageUrl,
             updatedAt: new Date(),
           });
-          console.log("犬のドキュメントを画像URLで更新しました");
         } catch (uploadError) {
           console.error("画像アップロードエラー発生:", uploadError);
           Alert.alert(
@@ -180,57 +163,28 @@ const RegisterDogScreen = () => {
             "プロフィール画像のアップロードに失敗しました。後でもう一度お試しください。"
           );
         }
-      } else {
-        console.log("画像が選択されていないため、アップロードはスキップします");
       }
 
-      // ユーザードキュメントも更新
-      const userDocRef = doc(db, "users", user.uid);
-      await setDoc(
-        userDocRef,
-        {
-          isOwner: true,
-        },
-        { merge: true }
-      );
-      console.log("ユーザードキュメントを更新しました (isOwner: true)");
+      // ユーザードキュメントを更新
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, {
+        isOwner: true,
+        updatedAt: new Date(),
+      });
 
-      Alert.alert("登録完了", "わんちゃんのプロフィールを登録しました", [
+      Alert.alert("登録完了", "わんちゃんを登録しました", [
         {
           text: "OK",
           onPress: () => {
-            const parent = navigation.getParent();
-            if (!parent) {
-              navigation.navigate("AccountMain", {
-                shouldRefresh: true,
-              });
-              return;
-            }
-
-            const parentId = parent.getId();
-            if (!parentId || !parentId.includes("Account")) {
-              parent.navigate("Account", {
-                screen: "AccountMain",
-                params: { shouldRefresh: true },
-              });
-            } else {
-              navigation.navigate("AccountMain", {
-                shouldRefresh: true,
-              });
-            }
+            navigation.navigate("AccountMain", {
+              shouldRefresh: true,
+            });
           },
         },
       ]);
     } catch (error) {
-      console.error("登録エラー（詳細）:", error);
-      if (error instanceof Error) {
-        console.error("エラーメッセージ:", error.message);
-        console.error("エラー名:", error.name);
-      }
-      Alert.alert(
-        "エラー",
-        "プロフィールの登録に失敗しました。もう一度お試しください。"
-      );
+      console.error("犬の登録に失敗しました:", error);
+      Alert.alert("エラー", "犬の登録に失敗しました");
     } finally {
       setIsLoading(false);
     }

@@ -14,7 +14,11 @@ Notifications.setNotificationHandler({
 });
 
 // 通知データの型定義
-export type NotificationType = "mofumofuRequest" | "match" | "chatMessage" | "test";
+export type NotificationType =
+  | "mofumofuRequest"
+  | "match"
+  | "chatMessage"
+  | "test";
 
 // カスタム通知データの型定義
 export interface NotificationData {
@@ -31,59 +35,36 @@ export interface NotificationData {
  * 通知のパーミッションを取得し、Expoプッシュトークンを返す
  * @returns プッシュ通知トークン
  */
-export async function registerForPushNotificationsAsync(): Promise<string | null> {
-  let token: string | null = null;
-
-  // 実機デバイスかどうかチェック
-  if (!Device.isDevice) {
-    console.log("プッシュ通知は実機デバイスでのみ利用可能です");
-    return null;
-  }
-
-  // 既存のパーミッション状態を確認
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-
-  // まだ許可されていない場合、ユーザーに許可を求める
-  if (existingStatus !== "granted") {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-
-  // 許可が得られなかった場合
-  if (finalStatus !== "granted") {
-    console.log("通知の許可が得られませんでした");
-    return null;
-  }
-
-  // Expoプッシュトークンを取得
+export const registerForPushNotifications = async (): Promise<
+  string | null
+> => {
   try {
-    // プロジェクトIDが存在する場合はそれを使用
-    const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
-    
-    const tokenOptions: Notifications.ExpoPushTokenOptions | undefined = 
-      projectId ? { projectId } : undefined;
-    
-    const response = await Notifications.getExpoPushTokenAsync(tokenOptions);
-    token = response.data;
-    console.log("プッシュトークン:", token);
+    if (!Device.isDevice) {
+      // プッシュ通知は実機デバイスでのみ利用可能です
+      return null;
+    }
+
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== "granted") {
+      // 通知の許可が得られませんでした
+      return null;
+    }
+
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    return token;
   } catch (error) {
-    console.error("プッシュトークン取得エラー:", error);
+    console.error("プッシュ通知の登録に失敗しました:", error);
     return null;
   }
-
-  // Androidの場合、通知チャンネルを設定
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "デフォルト",
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#FF231F7C",
-    });
-  }
-
-  return token;
-}
+};
 
 /**
  * ローカル通知をスケジュール
