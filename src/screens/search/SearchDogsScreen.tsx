@@ -360,7 +360,7 @@ const SearchDogsScreen = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>近くのわんちゃんを探す</Text>
+      <Text style={styles.title}>5km圏内のわんちゃん</Text>
 
       <TouchableOpacity
         style={styles.searchButton}
@@ -368,7 +368,7 @@ const SearchDogsScreen = ({
         disabled={isLoading}
       >
         <Text style={styles.searchButtonText}>
-          {userLocation ? "再検索する" : "わんちゃんを探す"}
+          {userLocation ? "再検索" : "わんちゃんを探す"}
         </Text>
       </TouchableOpacity>
 
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 21,
     fontWeight: "700",
     marginBottom: 30,
     textAlign: "center",
