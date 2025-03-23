@@ -29,22 +29,30 @@ const SearchMainScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#f8f9fa",
+    padding: 20,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
   },
   searchButton: {
     backgroundColor: "#FF9500",
-    padding: 15,
-    borderRadius: 25,
-    width: "80%",
-    alignItems: "center",
-    marginBottom: 20,
+    padding: 16,
+    borderRadius: 12,
+    width: "85%",
+    shadowColor: "#FF9500",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
   searchButtonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
+    textAlign: "center",
   },
 });
 

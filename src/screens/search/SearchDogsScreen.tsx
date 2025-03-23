@@ -26,7 +26,7 @@ import {
   getDocs,
   doc,
   getDoc,
-  onSnapshot
+  onSnapshot,
 } from "firebase/firestore";
 import { Dog } from "../../types/dog";
 import { db } from "../../config/firebase";
@@ -79,13 +79,13 @@ const SearchDogsScreen = ({
     }
   }, [isFocused]);
 
-   // 申請状態を監視するリアルタイムリスナーを設定
-   useEffect(() => {
+  // 申請状態を監視するリアルタイムリスナーを設定
+  useEffect(() => {
     if (!currentUser || !isFocused) return;
 
     const db = getFirestore();
     const appliesRef = collection(db, "applies");
-    
+
     // 現在のユーザーが行った申請のクエリ
     const q = query(
       appliesRef,
@@ -94,44 +94,52 @@ const SearchDogsScreen = ({
     );
 
     // リアルタイムリスナーを設定
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const appliedIds: Record<string, boolean> = {};
-      
-      // 現在の時刻
-      const currentTime = new Date();
-      // 再申請可能になるまでの時間（ミリ秒）: 2時間 = 7,200,000ミリ秒
-      const reapplyTimeLimit = 2 * 60 * 60 * 1000;
-      
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.dogID) {
-          // rejectedステータスの申請は表示しない
-          if (data.status === "rejected") {
-            return;
-          }
-          
-          // pendingまたはacceptedの場合
-          if (data.appliedAt) {
-            const appliedTime = data.appliedAt.toDate(); // FirestoreのタイムスタンプをDateに変換
-            const timeDifference = currentTime.getTime() - appliedTime.getTime();
-            
-            // 2時間以内の申請のみを「申請済み」として扱う
-            if (timeDifference < reapplyTimeLimit) {
+    const unsubscribe = onSnapshot(
+      q,
+      (querySnapshot) => {
+        const appliedIds: Record<string, boolean> = {};
+
+        // 現在の時刻
+        const currentTime = new Date();
+        // 再申請可能になるまでの時間（ミリ秒）: 2時間 = 7,200,000ミリ秒
+        const reapplyTimeLimit = 2 * 60 * 60 * 1000;
+
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.dogID) {
+            // rejectedステータスの申請は表示しない
+            if (data.status === "rejected") {
+              return;
+            }
+
+            // pendingまたはacceptedの場合
+            if (data.appliedAt) {
+              const appliedTime = data.appliedAt.toDate(); // FirestoreのタイムスタンプをDateに変換
+              const timeDifference =
+                currentTime.getTime() - appliedTime.getTime();
+
+              // 2時間以内の申請のみを「申請済み」として扱う
+              if (timeDifference < reapplyTimeLimit) {
+                appliedIds[data.dogID] = true;
+              }
+            } else {
+              // appliedAtがない古いデータの場合は通常通り「申請済み」とする
               appliedIds[data.dogID] = true;
             }
-          } else {
-            // appliedAtがない古いデータの場合は通常通り「申請済み」とする
-            appliedIds[data.dogID] = true;
           }
-        }
-      });
-      
-      console.log("リアルタイム更新: 申請済み犬の数", Object.keys(appliedIds).length);
-      setAppliedDogIds(appliedIds);
-    }, (error) => {
-      console.error("Firestore リスナーエラー:", error);
-    });
-    
+        });
+
+        console.log(
+          "リアルタイム更新: 申請済み犬の数",
+          Object.keys(appliedIds).length
+        );
+        setAppliedDogIds(appliedIds);
+      },
+      (error) => {
+        console.error("Firestore リスナーエラー:", error);
+      }
+    );
+
     // クリーンアップ関数でリスナーを解除
     return () => {
       unsubscribe();
@@ -402,25 +410,34 @@ const SearchDogsScreen = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    padding: 16,
+    backgroundColor: "#f8f9fa",
+    padding: 20,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 16,
+    fontSize: 28,
+    fontWeight: "700",
+    marginBottom: 30,
     textAlign: "center",
+    color: "#2c3e50",
   },
   searchButton: {
     backgroundColor: "#FF9500",
     padding: 16,
-    borderRadius: 8,
-    marginBottom: 16,
+    borderRadius: 12,
+    marginBottom: 30,
+    shadowColor: "#FF9500",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
   searchButtonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
     textAlign: "center",
   },
   loadingContainer: {
@@ -431,85 +448,91 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: "#666",
+    color: "#6c757d",
   },
   resultsContainer: {
     flex: 1,
   },
   resultsText: {
     fontSize: 16,
-    marginBottom: 16,
-    color: "#666",
+    marginBottom: 20,
+    color: "#6c757d",
+    textAlign: "center",
   },
   dogsList: {
-    paddingBottom: 16,
+    paddingBottom: 20,
   },
   dogCard: {
     flexDirection: "row",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   appliedDogCard: {
     opacity: 0.7,
   },
   dogImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
+    width: 90,
+    height: 90,
+    borderRadius: 12,
   },
   dogInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 16,
     justifyContent: "center",
   },
   dogName: {
     fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 4,
+    fontWeight: "600",
+    marginBottom: 6,
+    color: "#2c3e50",
   },
   dogDetail: {
     fontSize: 14,
-    color: "#666",
-    marginBottom: 4,
+    color: "#6c757d",
+    marginBottom: 6,
   },
   dogDistance: {
     fontSize: 14,
     color: "#FF9500",
-    marginBottom: 4,
+    marginBottom: 6,
+    fontWeight: "500",
   },
   dogNotes: {
-    fontSize: 12,
-    color: "#666",
+    fontSize: 13,
+    color: "#6c757d",
     fontStyle: "italic",
+    lineHeight: 18,
   },
   appliedBadge: {
     position: "absolute",
-    top: 8,
-    right: 8,
+    top: 12,
+    right: 12,
     backgroundColor: "#FF9500",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   appliedText: {
     color: "#fff",
     fontSize: 12,
-    fontWeight: "bold",
+    fontWeight: "600",
   },
   emptyText: {
     textAlign: "center",
-    color: "#666",
+    color: "#6c757d",
     fontSize: 16,
+    lineHeight: 24,
+    marginTop: 20,
   },
 });
 
