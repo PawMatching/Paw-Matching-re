@@ -18,10 +18,8 @@ const SearchMainScreen = () => {
         style={styles.searchButton}
         onPress={() => navigation.navigate("SearchDogs")}
       >
-        <Text style={styles.searchButtonText}>近くのわんちゃんを探す</Text>
+        <Text style={styles.searchButtonText}>5km圏内のわんちゃん</Text>
       </TouchableOpacity>
-
-      {/* 他の検索オプションをここに追加 */}
     </View>
   );
 };

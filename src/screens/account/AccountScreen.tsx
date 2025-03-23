@@ -8,6 +8,7 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import {
   useNavigation,
@@ -160,101 +161,107 @@ const AccountScreen = () => {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>アカウント設定</Text>
-
-      {/* ユーザープロフィールセクション */}
-      <View style={styles.profileSection}>
-        <View style={styles.profileHeader}>
-          <Text style={styles.sectionTitle}>ユーザー</Text>
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={handleEditUserProfile}
-          >
-            <Text style={styles.editButtonText}>編集</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.profileContent}>
-          {userData?.profileImage ? (
-            <Image
-              source={{ uri: userData.profileImage }}
-              style={styles.profileImage}
-            />
-          ) : (
-            <View style={[styles.profileImage, styles.iconContainer]}>
-              <MaterialIcons name="person" size={60} color="#888888" />
-            </View>
-          )}
-          <Text style={styles.profileName}>
-            {userData?.name || "ユーザー名未設定"}
-          </Text>
-        </View>
-      </View>
-
-      {/* 犬のプロフィールセクション */}
-      {userData?.isOwner && (
+    <ScrollView style={styles.scrollView}>
+      <View style={styles.container}>
+        {/* ユーザープロフィールセクション */}
         <View style={styles.profileSection}>
           <View style={styles.profileHeader}>
-            <Text style={styles.sectionTitle}>わんちゃん</Text>
+            <Text style={styles.sectionTitle}>ユーザー</Text>
             <TouchableOpacity
               style={styles.editButton}
-              onPress={handleEditDogProfile}
+              onPress={handleEditUserProfile}
             >
               <Text style={styles.editButtonText}>編集</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.profileContent}>
-            {dogData?.profileImage ? (
+            {userData?.profileImage ? (
               <Image
-                source={{ uri: dogData.profileImage }}
+                source={{ uri: userData.profileImage }}
                 style={styles.profileImage}
               />
             ) : (
               <View style={[styles.profileImage, styles.iconContainer]}>
-                <MaterialIcons name="pets" size={60} color="#888888" />
+                <MaterialIcons name="person" size={60} color="#888888" />
               </View>
             )}
             <Text style={styles.profileName}>
-              {dogData?.dogname || "犬の名前未設定"}
+              {userData?.name || "ユーザー名未設定"}
             </Text>
           </View>
         </View>
-      )}
 
-      {/* 犬を登録していない場合の表示 */}
-      {userData && !userData.isOwner && (
-        <View style={styles.noDogContainer}>
-          <Text style={styles.noDogText}>
-            わんちゃんがいる場合は登録お願いします
-          </Text>
+        {/* 犬のプロフィールセクション */}
+        {userData?.isOwner && (
+          <View style={styles.profileSection}>
+            <View style={styles.profileHeader}>
+              <Text style={styles.sectionTitle}>わんちゃん</Text>
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={handleEditDogProfile}
+              >
+                <Text style={styles.editButtonText}>編集</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.profileContent}>
+              {dogData?.profileImage ? (
+                <Image
+                  source={{ uri: dogData.profileImage }}
+                  style={styles.profileImage}
+                />
+              ) : (
+                <View style={[styles.profileImage, styles.iconContainer]}>
+                  <MaterialIcons name="pets" size={60} color="#888888" />
+                </View>
+              )}
+              <Text style={styles.profileName}>
+                {dogData?.dogname || "犬の名前未設定"}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* 犬を登録していない場合の表示 */}
+        {userData && !userData.isOwner && (
+          <View style={styles.noDogContainer}>
+            <Text style={styles.noDogText}>
+              わんちゃんがいる場合は登録お願いします
+            </Text>
+            <TouchableOpacity
+              style={styles.registerDogButton}
+              onPress={() => navigation.navigate("RegisterDog")}
+            >
+              <Text style={styles.registerDogButtonText}>
+                わんちゃんを登録する
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* ログアウトボタン */}
+        <View style={styles.actionSection}>
           <TouchableOpacity
-            style={styles.registerDogButton}
-            onPress={() => navigation.navigate("RegisterDog")}
+            style={[styles.actionButton, styles.logoutButton]}
+            onPress={handleLogout}
           >
-            <Text style={styles.registerDogButtonText}>
-              わんちゃんを登録する
+            <MaterialIcons name="logout" size={24} color="#fff" />
+            <Text style={[styles.actionText, styles.logoutText]}>
+              ログアウト
             </Text>
           </TouchableOpacity>
         </View>
-      )}
-
-      {/* ログアウトボタン */}
-      <View style={styles.actionSection}>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.logoutButton]}
-          onPress={handleLogout}
-        >
-          <MaterialIcons name="logout" size={24} color="#fff" />
-          <Text style={[styles.actionText, styles.logoutText]}>ログアウト</Text>
-        </TouchableOpacity>
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
+  scrollView: {
+    flex: 1,
+    backgroundColor: "#f8f9fa",
+  },
   container: {
     flex: 1,
     padding: 25,
@@ -386,6 +393,7 @@ const styles = StyleSheet.create({
   },
   actionSection: {
     marginTop: 20,
+    marginBottom: 40,
   },
   actionButton: {
     flexDirection: "row",

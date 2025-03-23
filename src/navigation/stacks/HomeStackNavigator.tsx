@@ -40,7 +40,7 @@ const HomeStackNavigator = () => {
         name="Search"
         component={SearchDogsScreen}
         options={{
-          title: "近くのわんちゃん",
+          title: "探す",
         }}
       />
       <Stack.Screen
