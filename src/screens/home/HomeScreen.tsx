@@ -304,6 +304,9 @@ export default function HomeScreen() {
           ようこそ、{username ? username : ""}さん！
         </Text>
 
+        <Text style={styles.subText}>
+          お散歩中のわんちゃんを探す場合は
+        </Text>
         <TouchableOpacity
           style={styles.searchButton}
           onPress={() => navigation.navigate("Search")}
@@ -313,6 +316,9 @@ export default function HomeScreen() {
 
         {!isOwner && (
           <View style={styles.buttonContainer}>
+            <Text style={styles.subText}>
+              わんちゃんを登録する場合は
+            </Text>
             <TouchableOpacity
               style={styles.registerButton}
               onPress={() => navigation.navigate("RegisterDog")}
@@ -330,7 +336,7 @@ export default function HomeScreen() {
               <View>
                 <Text style={styles.walkingText}>
                   {userDog.dogname}
-                  {isWalking ? "とお散歩中" : "はお留守番中"}
+                  {isWalking ? "とお散歩中" : "とお散歩に出る"}
                 </Text>
                 {isWalking && remainingTime !== null && (
                   <Text style={styles.timerText}>
@@ -375,6 +381,11 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 24,
     marginBottom: 30,
+  },
+  subText: {
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 5,
   },
   searchButton: {
     backgroundColor: "#FF9500",
