@@ -51,19 +51,23 @@ const EditProfileScreen = () => {
         }
 
         setEmail(user.email || "");
-        setUsername(user.displayName || "");
 
         const userDocRef = doc(db, "users", user.uid);
         const userDoc = await getDoc(userDocRef);
 
         if (userDoc.exists()) {
           const userData = userDoc.data();
+          // Firestoreのnameを優先的に使用し、なければdisplayNameを使用
+          setUsername(userData.name || user.displayName || "");
           if (userData.comment) {
             setComment(userData.comment);
           }
           if (userData.profileImage) {
             setProfileImage(userData.profileImage);
           }
+        } else {
+          // Firestoreにデータがない場合はdisplayNameを使用
+          setUsername(user.displayName || "");
         }
 
         setInitialDataLoaded(true);
