@@ -22,7 +22,7 @@ import {
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
 const TabNavigator = () => {
-  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0); // マッチング申請数
   const auth = getAuth();
   const currentUser = auth.currentUser;
 
