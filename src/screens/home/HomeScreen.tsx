@@ -304,6 +304,7 @@ export default function HomeScreen() {
           ようこそ、{username ? username : ""}さん！
         </Text>
 
+        <Text style={styles.subText}>お散歩中のわんちゃんを探す場合は</Text>
         <TouchableOpacity
           style={styles.searchButton}
           onPress={() => navigation.navigate("Search")}
@@ -313,6 +314,7 @@ export default function HomeScreen() {
 
         {!isOwner && (
           <View style={styles.buttonContainer}>
+            <Text style={styles.subText}>わんちゃんを登録する場合は</Text>
             <TouchableOpacity
               style={styles.registerButton}
               onPress={() => navigation.navigate("RegisterDog")}
@@ -330,7 +332,7 @@ export default function HomeScreen() {
               <View>
                 <Text style={styles.walkingText}>
                   {userDog.dogname}
-                  {isWalking ? "とお散歩中" : "はお留守番中"}
+                  {isWalking ? "とお散歩中" : "とお散歩に出る"}
                 </Text>
                 {isWalking && remainingTime !== null && (
                   <Text style={styles.timerText}>
@@ -364,77 +366,116 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#f8f9fa",
   },
   contentContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingBottom: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   welcomeText: {
-    fontSize: 24,
-    marginBottom: 30,
+    fontSize: 28,
+    fontWeight: "700",
+    marginBottom: 40,
+    color: "#2c3e50",
+    textAlign: "center",
+  },
+  subText: {
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 12,
+    marginTop: 12,
+    color: "#6c757d",
+    lineHeight: 22,
   },
   searchButton: {
     backgroundColor: "#FF9500",
-    padding: 15,
-    borderRadius: 8,
-    width: "80%",
-    marginBottom: 15,
+    padding: 16,
+    borderRadius: 12,
+    width: "85%",
+    marginBottom: 30,
+    shadowColor: "#FF9500",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
   searchButtonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
     textAlign: "center",
   },
   buttonContainer: {
-    width: "80%",
-    marginBottom: 15,
+    width: "85%",
+    marginBottom: 20,
   },
   registerButton: {
     backgroundColor: "#FF9500",
-    padding: 15,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
     width: "100%",
+    shadowColor: "#FF9500",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
   registerButtonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
     textAlign: "center",
   },
   walkingContainer: {
-    width: "80%",
-    marginTop: 20,
+    width: "85%",
+    marginTop: 30,
   },
   walkingStatusContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: "#ffffff",
+    padding: 20,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   walkingText: {
     fontSize: 16,
     marginRight: 10,
+    color: "#2c3e50",
+    fontWeight: "500",
   },
   timerText: {
-    fontSize: 12,
-    color: "#666",
-    marginTop: 4,
+    fontSize: 13,
+    color: "#6c757d",
+    marginTop: 6,
   },
   animationContainer: {
-    height: 200,
+    height: 220,
     width: "100%",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#f8f9fa",
+    marginTop: 20,
   },
   animation: {
-    width: Dimensions.get("window").width * 0.8,
-    height: 200,
+    width: Dimensions.get("window").width * 0.85,
+    height: 220,
   },
 });
