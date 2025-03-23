@@ -214,6 +214,11 @@ const SearchDogsScreen = ({
         const dogData = doc.data();
         const dogId = doc.id;
 
+        // 現在のユーザーの犬は除外
+        if (dogData.userID === currentUser?.uid) {
+          continue;
+        }
+
         // Realtime Databaseから位置情報を取得
         const dogLocationSnapshot = await get(
           ref(rtdb, `locations/dogs/${dogId}`)
