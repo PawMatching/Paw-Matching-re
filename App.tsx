@@ -146,30 +146,25 @@ export default function App() {
   };
 
   useEffect(() => {
-    const registerForPushNotifications = async () => {
+    const setupPushNotifications = async () => {
       try {
         const token = await registerForPushNotifications();
         if (token) {
           await AsyncStorage.setItem("expoPushToken", token);
+          setExpoPushToken(token);
         }
       } catch (error) {
         console.error("プッシュ通知の登録に失敗しました:", error);
       }
     };
 
-    registerForPushNotifications();
+    setupPushNotifications();
   }, []);
 
   useEffect(() => {
     // アプリの初期化処理
     async function prepare() {
       try {
-        // プッシュ通知の初期化
-        const token = await registerForPushNotifications();
-        if (token) {
-          setExpoPushToken(token);
-        }
-
         // 通知受信時のリスナーを設定
         notificationListener.current = addNotificationReceivedListener(
           (notification) => {
