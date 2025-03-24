@@ -206,21 +206,28 @@ export default function HomeScreen() {
     };
   }, [isWalking, userDog]);
 
-  // 画面がフォーカスされた時の処理
-  useFocusEffect(
-    useCallback(() => {
-      console.log("画面がフォーカスされました");
-      // 認証済みでユーザーが存在する場合、データを取得
-      if (isAuthenticated && user) {
-        console.log("フォーカス時: ユーザーデータの再取得を試みます");
+ // 画面がフォーカスされた時の処理
+useFocusEffect(
+  useCallback(() => {
+    console.log("画面がフォーカスされました");
+    let timer: NodeJS.Timeout | null = null;
+    
+    // 認証済みでユーザーが存在する場合、データを取得
+    if (isAuthenticated && user) {
+      console.log("フォーカス時: ユーザーデータの再取得を試みます");
+      timer = setTimeout(() => {
         fetchUserData();
-      }
+      }, 500);
+    }
 
-      return () => {
-        console.log("画面のフォーカスが外れました");
-      };
-    }, [isAuthenticated, user])
-  );
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+      console.log("画面のフォーカスが外れました");
+    };
+  }, [isAuthenticated, user])
+);
 
   // ユーザーデータを取得する関数
   const fetchUserData = async () => {

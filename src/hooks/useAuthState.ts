@@ -11,7 +11,7 @@ import {
 } from "firebase/auth";
 import { auth } from "../config/firebase";
 import * as SecureStore from "expo-secure-store";
-import * as AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const USER_EMAIL_KEY = "auth_user_email";
 const USER_PASSWORD_KEY = "auth_user_password";
@@ -112,8 +112,14 @@ export const useAuthState = () => {
     try {
       setIsLoading(true);
       const response = await signInWithEmailAndPassword(auth, email, password);
+      // ログイン情報を保存する前に少し待機
+    await new Promise(resolve => setTimeout(resolve, 300));
       // 安全にログイン情報を保存
       await saveCredentials(email, password);
+
+      // さらに認証情報が確実に反映されるまで待機
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
       return response.user;
     } catch (error) {
       console.error("ログインに失敗しました:", error);

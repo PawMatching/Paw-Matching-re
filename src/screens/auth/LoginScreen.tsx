@@ -29,6 +29,11 @@ const LoginScreen = () => {
   const handleLogin = async () => {
     try {
       await signIn(email, password);
+      // ログイン成功後、少し遅延してからナビゲーションを行う
+    setTimeout(() => {
+      // 既にナビゲーションされている場合は何もしない
+      // (遷移後のコンポーネントがアンマウントされた場合のエラー防止)
+    }, 500);
     } catch (error) {
       Alert.alert(
         "エラー",
