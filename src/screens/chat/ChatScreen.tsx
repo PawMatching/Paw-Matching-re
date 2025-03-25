@@ -306,17 +306,27 @@ const ChatScreen = () => {
 
   // ヘッダー設定
   useEffect(() => {
+    // ヘッダーの幅を制限して中央揃えにする
+    const headerWidth = Platform.OS === "ios" ? "80%" : "70%";
     navigation.setOptions({
       headerTitle: () => (
-        <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>
-            {otherUserName}さんとのチャット
+        <View style={[styles.headerContainer, styles.headerPlatformAdjust,{ width: headerWidth }]}>
+          <Text
+            style={styles.headerTitle}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {otherUserName ? `${otherUserName}さんとのチャット` : "チャット"}
           </Text>
           {isOtherUserOwner && dogName && (
-            <Text style={styles.headerSubtitle}>{dogName}の飼い主さん</Text>
+            <Text style={styles.headerSubtitle} numberOfLines={1} ellipsizeMode="tail">
+              {dogName}の飼い主さん
+            </Text>
           )}
           {!isOtherUserOwner && (
-            <Text style={styles.headerSubtitle}>モフモフ申請者</Text>
+            <Text style={styles.headerSubtitle} numberOfLines={1} ellipsizeMode="tail">
+              モフモフ申請者
+            </Text>
           )}
         </View>
       ),
@@ -324,7 +334,10 @@ const ChatScreen = () => {
       headerLeft: () => (
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          style={styles.headerButton}
+          style={[
+            styles.headerButton,
+            { marginLeft: Platform.OS === "ios" ? 0 : 8 },
+          ]}
         >
           <Ionicons name="chevron-back" size={24} color="#FF9500" />
         </TouchableOpacity>
