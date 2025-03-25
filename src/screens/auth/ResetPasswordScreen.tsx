@@ -33,24 +33,34 @@ const PasswordResetScreen = () => {
       return;
     }
 
+    // メールアドレスの簡易バリデーション
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert("エラー", "有効なメールアドレスを入力してください");
+      return;
+    }
+
     try {
       setIsLoading(true);
       await sendPasswordResetEmail(auth, email);
       Alert.alert(
-        "パスワードリセットメール送信完了",
-        "パスワードリセットのためのメールを送信しました。メールの指示に従ってパスワードをリセットしてください。",
+        "確認",
+        "入力されたメールアドレスが登録済みであれば、パスワードリセット用のメールが送信されます。メールの指示に従ってパスワードをリセットしてください。",
         [{ text: "OK", onPress: () => navigation.navigate("Login") }]
       );
     } catch (error) {
-      let errorMessage = "パスワードリセットメールの送信に失敗しました";
-      if ((error as FirebaseError).code === "auth/user-not-found") {
-        errorMessage = "このメールアドレスのユーザーが見つかりませんでした";
-      } else if ((error as FirebaseError).code === "auth/invalid-email") {
-        errorMessage = "無効なメールアドレスです";
-      }
-      Alert.alert("エラー", errorMessage);
-    } finally {
-      setIsLoading(false);
+        if ((error as FirebaseError).code === "auth/invalid-email") {
+            Alert.alert("エラー", "有効なメールアドレスを入力してください");
+          } else {
+            // その他のエラーでも成功メッセージと似たメッセージを表示
+            Alert.alert(
+              "確認",
+              "入力されたメールアドレスが登録済みであれば、パスワードリセット用のメールが送信されます。メールボックスを確認してください。",
+              [{ text: "OK", onPress: () => navigation.navigate("Login") }]
+            );
+          }
+        } finally {
+          setIsLoading(false);
     }
   };
 
@@ -59,7 +69,7 @@ const PasswordResetScreen = () => {
       <View style={styles.formContainer}>
         <Text style={styles.title}>パスワードをリセット</Text>
         <Text style={styles.subtitle}>
-          登録したメールアドレスを入力してください。パスワードリセットのためのリンクをお送りします。
+        アカウント登録時のメールアドレスを入力してください。パスワードリセットのためのリンクをお送りします。
         </Text>
 
         <TextInput
@@ -77,7 +87,7 @@ const PasswordResetScreen = () => {
           disabled={isLoading}
         >
           <Text style={styles.buttonText}>
-            {isLoading ? "リセットメール送信中..." : "リセットメールを送信"}
+            {isLoading ? "処理中..." : "リセットメールを送信"}
           </Text>
         </TouchableOpacity>
 
