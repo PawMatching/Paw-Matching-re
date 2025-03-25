@@ -8,20 +8,34 @@ export const styles = StyleSheet.create({
   },
   headerContainer: {
     alignItems: "center",
+    justifyContent: "center", // 追加
+    width: "100%", // 追加：幅を確保
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: "600",
     color: "#343a40",
+    textAlign: "center", // 追加：テキストセンタリング
   },
   headerSubtitle: {
     fontSize: 12,
     color: "#868e96",
     marginTop: 2,
+    textAlign: "center", // 追加：テキストセンタリング
   },
   headerButton: {
     padding: 8,
   },
+  // プラットフォーム固有のスタイル
+  headerPlatformAdjust:
+    Platform.select({
+      ios: {
+        paddingHorizontal: 8,
+      },
+      android: {
+        paddingHorizontal: 16,
+      },
+    }) || {},
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
