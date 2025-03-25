@@ -9,6 +9,7 @@ import * as Notifications from "expo-notifications";
 import {
   addNotificationReceivedListener,
   addNotificationResponseReceivedListener,
+  removeNotificationSubscription,
 } from "./src/utils/notifications";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -44,15 +45,28 @@ function NotificationHandler() {
   const navigation = useNavigation<NavigationProp>();
 
   useEffect(() => {
-    const subscription = Notifications.addNotificationResponseReceivedListener(
+    // 受信リスナー（バックグラウンドで通知を受けた時）
+    const notificationListener = addNotificationReceivedListener(
+      (notification) => {
+        console.log("通知を受信:", notification.request.content);
+        // 必要な処理があればここに追加
+      }
+    );
+
+    // タップリスナー（通知をタップした時）
+    const responseListener = addNotificationResponseReceivedListener(
       (response) => {
+        console.log("通知がタップされました:", response.notification.request.content);
+        
         const { type, data } = response.notification.request.content.data as {
           type: string;
           data: any;
         };
 
+        // タイプに応じたナビゲーション処理
         switch (type) {
           case "chat":
+          case "chatMessage":
             navigation.navigate("Chat", {
               screen: "ChatRoom",
               params: { matchId: data.matchId },
@@ -65,72 +79,47 @@ function NotificationHandler() {
             });
             break;
           case "mofumofu":
+          case "mofumofuRequest":
             navigation.navigate("Mofumofu", {
               screen: "MofumofuDetail",
               params: { requestId: data.requestId },
             });
             break;
           default:
-            console.error("未対応の通知タイプ:", type);
+            console.warn("未対応の通知タイプ:", type);
         }
       }
     );
 
-    return () => subscription.remove();
+    // クリーンアップ関数
+    return () => {
+      removeNotificationSubscription(notificationListener);
+      removeNotificationSubscription(responseListener);
+    };
   }, [navigation]);
 
   return null;
 }
 
 export default function App() {
-  const { isAuthenticated, user } = useAuthState();
+  const { isAuthenticated } = useAuthState();
   const [appIsReady, setAppIsReady] = useState(false);
-  const notificationListener = useRef<Notifications.Subscription>();
-  const responseListener = useRef<Notifications.Subscription>();
 
   useEffect(() => {
     // アプリの初期化処理
     async function prepare() {
       try {
-        // 通知受信時のリスナーを設定
-        notificationListener.current = addNotificationReceivedListener(
-          (notification) => {
-            const { type } = notification.request.content.data as {
-              type: string;
-            };
-            // 通知の処理をここに実装
-          }
-        );
-
-        // 通知タップ時のリスナーを設定
-        responseListener.current = addNotificationResponseReceivedListener(
-          (response) => {
-            const { type } = response.notification.request.content.data as {
-              type: string;
-            };
-            // 通知タップ時の処理をここに実装
-          }
-        );
+        // アプリ初期化処理
+        // アニメーションなどがある場合はここで処理
+        await new Promise(resolve => setTimeout(resolve, 200)); // 短い遅延で初期化を模倣
       } catch (e) {
-        console.warn(e);
+        console.warn("アプリ初期化エラー:", e);
       } finally {
         setAppIsReady(true);
       }
     }
 
     prepare();
-
-    // クリーンアップ関数
-    return () => {
-      if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(
-          notificationListener.current
-        );
-      }
-      if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
-      }
-    };
   }, []);
 
   // アプリの準備ができていない場合はローディング画面を表示
@@ -145,7 +134,7 @@ export default function App() {
         }}
       >
         <ActivityIndicator size="large" color="#4dabf7" />
-        <Text style={{ marginTop: 10 }}>読み込み中...</Text>
+        <Text style={{ marginTop: 10 }}>アプリを起動中...</Text>
       </View>
     );
   }
