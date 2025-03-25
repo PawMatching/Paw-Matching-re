@@ -62,9 +62,11 @@ export function useAuthState() {
       }
 
       // 最後の更新から5秒以内かつ強制更新でない場合はスキップ
-      if (lastTokenUpdate && 
-          Date.now() - lastTokenUpdate.getTime() < 5000 && 
-          !forceUpdate) {
+      if (
+        lastTokenUpdate &&
+        Date.now() - lastTokenUpdate.getTime() < 5000 &&
+        !forceUpdate
+      ) {
         console.log("最後の更新から5秒以内のため、更新をスキップします");
         return;
       }
@@ -84,7 +86,7 @@ export function useAuthState() {
           console.log("認証初期化状態:", isAuthInitialized);
           console.log("現在のユーザー:", user?.uid);
           console.log("更新対象のユーザーID:", userId);
-          
+
           await setDoc(
             doc(db, "users", userId),
             {
@@ -92,9 +94,9 @@ export function useAuthState() {
               lastTokenUpdate: new Date(),
               deviceInfo: {
                 platform: Platform.OS,
-                model: Device.modelName || 'unknown',
-                lastUpdated: new Date()
-              }
+                model: Device.modelName || "unknown",
+                lastUpdated: new Date(),
+              },
             },
             { merge: true }
           );
@@ -102,7 +104,7 @@ export function useAuthState() {
           setLastTokenUpdate(new Date());
         } catch (firestoreError) {
           console.error("Firestoreへの保存失敗:", firestoreError);
-          
+
           // リトライロジックを追加
           setTimeout(() => {
             // 認証初期化されていれば再試行
@@ -126,7 +128,7 @@ export function useAuthState() {
   const handleSuccessfulAuth = async (userId: string) => {
     console.log("認証成功の後処理を実行:", userId);
     setIsAuthInitialized(true);
-    
+
     // 少し遅延を入れて確実に認証状態が更新された後にトークンを更新
     setTimeout(() => {
       updateAndSaveToken(userId, true);
@@ -196,34 +198,40 @@ export function useAuthState() {
   };
 
   // 保存されたログイン情報を使用して自動ログイン
-  const autoSignIn = async () => {
-    try {
-      const savedEmail = await SecureStore.getItemAsync(USER_EMAIL_KEY);
-      const savedPassword = await SecureStore.getItemAsync(USER_PASSWORD_KEY);
+// autoSignIn 関数内にデバッグログを追加
+const autoSignIn = async () => {
+  try {
+    console.log("自動ログイン処理を開始します...");
+    const savedEmail = await SecureStore.getItemAsync(USER_EMAIL_KEY);
+    const savedPassword = await SecureStore.getItemAsync(USER_PASSWORD_KEY);
 
-      if (savedEmail && savedPassword) {
-        console.log("保存されたログイン情報を使用して自動ログインを試みます...");
-        const userCredential = await signInWithEmailAndPassword(
-          auth,
-          savedEmail,
-          savedPassword
-        );
-        console.log("自動ログイン成功:", userCredential.user.uid);
-        await handleSuccessfulAuth(userCredential.user.uid);
-      } else {
-        // 保存されたログイン情報がない場合でも認証初期化完了をマーク
-        setIsAuthInitialized(true);
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error("自動ログイン失敗:", error);
-      // エラーが発生した場合は保存された情報を削除
-      await saveCredentials(null, null);
-      // エラーでも認証初期化完了をマーク
+    console.log("保存された認証情報:", savedEmail ? "あり" : "なし");
+
+    if (savedEmail && savedPassword) {
+      console.log("保存されたログイン情報を使用して自動ログインを試みます...");
+      setLoading(true); // 自動ログイン中はローディング状態を維持
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        savedEmail,
+        savedPassword
+      );
+      console.log("自動ログイン成功:", userCredential.user.uid);
+      await handleSuccessfulAuth(userCredential.user.uid);
+      // ここで明示的にローディング状態を解除
+      setLoading(false);
+    } else {
+      // 保存されたログイン情報がない場合は即座に初期化完了
+      console.log("保存されたログイン情報がないため、ゲスト状態で初期化します");
       setIsAuthInitialized(true);
       setLoading(false);
     }
-  };
+  } catch (error) {
+    console.error("自動ログイン失敗:", error);
+    await saveCredentials(null, null);
+    setIsAuthInitialized(true);
+    setLoading(false);
+  }
+};
 
   // アプリ起動時の処理
   useEffect(() => {
@@ -244,7 +252,7 @@ export function useAuthState() {
       // ユーザー情報を更新
       setUser(currentUser);
       setCurrentUserId(currentUser?.uid || null);
-      
+
       // 認証が初期化されたことをマーク（最初の一度だけ）
       if (!authInitialized) {
         authInitialized = true;
