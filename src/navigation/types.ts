@@ -54,6 +54,7 @@ export type AccountStackParamList = {
 export type AuthStackParamList = {
   Login: undefined;
   SignUp: undefined;
+  ResetPassword: undefined;
 };
 
 export type AuthScreenNavigationProp =

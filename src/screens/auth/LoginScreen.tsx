@@ -30,10 +30,10 @@ const LoginScreen = () => {
     try {
       await signIn(email, password);
       // ログイン成功後、少し遅延してからナビゲーションを行う
-    setTimeout(() => {
-      // 既にナビゲーションされている場合は何もしない
-      // (遷移後のコンポーネントがアンマウントされた場合のエラー防止)
-    }, 500);
+      setTimeout(() => {
+        // 既にナビゲーションされている場合は何もしない
+        // (遷移後のコンポーネントがアンマウントされた場合のエラー防止)
+      }, 500);
     } catch (error) {
       Alert.alert(
         "エラー",
@@ -71,6 +71,12 @@ const LoginScreen = () => {
           <Text style={styles.linkText}>
             アカウントをお持ちでない方はこちら
           </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.linkButton, { marginTop: 10 }]}
+          onPress={() => navigation.navigate("ResetPassword")}
+        >
+          <Text style={styles.linkText}>パスワードを忘れた場合はこちら</Text>
         </TouchableOpacity>
       </View>
 
