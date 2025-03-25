@@ -16,39 +16,41 @@ type RootNavigatorProps = {
 };
 
 const RootNavigator: React.FC<RootNavigatorProps> = ({ initialAuthenticated }) => {
-  const { isAuthenticated, isLoading, tryRestoreAuth } = useAuthState();
-  const [restoringAuth, setRestoringAuth] = useState(true);
+  const { isAuthenticated, loading } = useAuthState();
+  const [showLoadingScreen, setShowLoadingScreen] = useState(true);
   const [userAuthenticated, setUserAuthenticated] = useState(initialAuthenticated || false);
 
   // Firebase認証状態の変更を監視
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log("RootNavigator: 認証状態変更検出", !!user);
       setUserAuthenticated(!!user);
+      
+      // 認証状態が確定したら、少し遅延を入れてからローディング画面を非表示にする
+      setTimeout(() => {
+        setShowLoadingScreen(false);
+      }, 300);
     });
 
     return () => unsubscribe();
   }, []);
 
-  // 保存された認証情報からの復元を試みる
-  useEffect(() => {
-    const restoreAuth = async () => {
-      try {
-        // 認証の復元を試みる
-        await tryRestoreAuth();
-      } finally {
-        setRestoringAuth(false);
-      }
-    };
-    
-    restoreAuth();
-  }, [tryRestoreAuth]);
-
   // useAuthStateからの認証状態が変更された場合も更新
   useEffect(() => {
+    console.log("RootNavigator: isAuthenticated変更", isAuthenticated);
     setUserAuthenticated(isAuthenticated);
-  }, [isAuthenticated]);
+    
+    // ローディング状態が終了したら、ローディング画面の表示も終了する準備
+    if (!loading && showLoadingScreen) {
+      // 少し遅延を入れて、状態の変化が適用された後に画面を表示
+      setTimeout(() => {
+        setShowLoadingScreen(false);
+      }, 300);
+    }
+  }, [isAuthenticated, loading]);
 
-  if (isLoading || restoringAuth) {
+  // ローディング画面の表示
+  if (loading || showLoadingScreen) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#FF9500" />

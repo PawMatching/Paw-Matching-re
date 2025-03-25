@@ -1,7 +1,7 @@
 // src/utils/notifications.tsx
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
-import { Platform } from "react-native";
+import { Platform, Linking } from "react-native";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -40,26 +40,53 @@ export const registerForPushNotifications = async (): Promise<
   string | null
 > => {
   try {
+    console.log("プッシュ通知の登録を開始します...");
+
     if (!Device.isDevice) {
-      // プッシュ通知は実機デバイスでのみ利用可能です
+      console.warn("プッシュ通知は実機デバイスでのみ利用可能です");
       return null;
     }
 
     const { status: existingStatus } =
       await Notifications.getPermissionsAsync();
+    console.log("現在の通知権限状態:", existingStatus);
+
     let finalStatus = existingStatus;
 
     if (existingStatus !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
+      console.log("通知権限をリクエストします...");
+      const { status } = await Notifications.requestPermissionsAsync({
+        ios: {
+          allowAlert: true,
+          allowBadge: true,
+          allowSound: true,
+          allowAnnouncements: true,
+        },
+        android: {
+          allowAlert: true,
+          allowBadge: true,
+          allowSound: true,
+        },
+      });
       finalStatus = status;
+      console.log("通知権限のリクエスト結果:", status);
     }
 
     if (finalStatus !== "granted") {
-      // 通知の許可が得られませんでした
+      console.warn(
+        "通知の許可が得られませんでした。設定から手動で許可してください。"
+      );
+      // 設定画面を開くためのリンクを表示
+      if (Platform.OS === "ios") {
+        Linking.openSettings();
+      }
       return null;
     }
 
+    console.log("Expoプッシュトークンを取得します...");
     const token = (await Notifications.getExpoPushTokenAsync()).data;
+    console.log("取得したトークン:", token);
+
     return token;
   } catch (error) {
     console.error("プッシュ通知の登録に失敗しました:", error);
