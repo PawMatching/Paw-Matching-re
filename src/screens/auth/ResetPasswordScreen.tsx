@@ -1,4 +1,4 @@
-// src/screens/auth/LoginScreen.tsx
+// src/screens/auth/ResetPasswordScreen.tsx
 import React, { useState, useRef, useEffect } from "react";
 import {
   View,
@@ -8,16 +8,17 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "../../config/firebase";
 import { useNavigation } from "@react-navigation/native";
-import { useAuthState } from "../../hooks/useAuthState";
 import { AuthScreenNavigationProp } from "../../navigation/types";
+import { FirebaseError } from "firebase/app";
 import LottieView from "lottie-react-native";
 
-const LoginScreen = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+const PasswordResetScreen = () => {
   const navigation = useNavigation<AuthScreenNavigationProp>();
-  const { signIn } = useAuthState();
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const animationRef = useRef<LottieView>(null);
 
   useEffect(() => {
@@ -26,57 +27,65 @@ const LoginScreen = () => {
     }
   }, []);
 
-  const handleLogin = async () => {
+  const handlePasswordReset = async () => {
+    if (!email) {
+      Alert.alert("エラー", "メールアドレスを入力してください");
+      return;
+    }
+
     try {
-      await signIn(email, password);
-      // ログイン成功後、少し遅延してからナビゲーションを行う
-      setTimeout(() => {
-        // 既にナビゲーションされている場合は何もしない
-        // (遷移後のコンポーネントがアンマウントされた場合のエラー防止)
-      }, 500);
-    } catch (error) {
+      setIsLoading(true);
+      await sendPasswordResetEmail(auth, email);
       Alert.alert(
-        "エラー",
-        "ログインに失敗しました。メールアドレスとパスワードを確認してください。"
+        "パスワードリセットメール送信完了",
+        "パスワードリセットのためのメールを送信しました。メールの指示に従ってパスワードをリセットしてください。",
+        [{ text: "OK", onPress: () => navigation.navigate("Login") }]
       );
+    } catch (error) {
+      let errorMessage = "パスワードリセットメールの送信に失敗しました";
+      if ((error as FirebaseError).code === "auth/user-not-found") {
+        errorMessage = "このメールアドレスのユーザーが見つかりませんでした";
+      } else if ((error as FirebaseError).code === "auth/invalid-email") {
+        errorMessage = "無効なメールアドレスです";
+      }
+      Alert.alert("エラー", errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.formContainer}>
-        <Text style={styles.title}>ログイン</Text>
+        <Text style={styles.title}>パスワードをリセット</Text>
+        <Text style={styles.subtitle}>
+          登録したメールアドレスを入力してください。パスワードリセットのためのリンクをお送りします。
+        </Text>
+
         <TextInput
           style={styles.input}
           placeholder="メールアドレス"
           value={email}
           onChangeText={setEmail}
-          autoCapitalize="none"
           keyboardType="email-address"
+          autoCapitalize="none"
         />
-        <TextInput
-          style={styles.input}
-          placeholder="パスワード"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>ログイン</Text>
-        </TouchableOpacity>
+
         <TouchableOpacity
-          style={styles.linkButton}
-          onPress={() => navigation.navigate("SignUp")}
+          style={styles.button}
+          onPress={handlePasswordReset}
+          disabled={isLoading}
         >
-          <Text style={styles.linkText}>
-            アカウントをお持ちでない方はこちら
+          <Text style={styles.buttonText}>
+            {isLoading ? "リセットメール送信中..." : "リセットメールを送信"}
           </Text>
         </TouchableOpacity>
+
         <TouchableOpacity
-          style={[styles.linkButton, { marginTop: 10 }]}
-          onPress={() => navigation.navigate("ResetPassword")}
+          style={styles.linkButton}
+          onPress={() => navigation.navigate("Login")}
         >
-          <Text style={styles.linkText}>パスワードを忘れた場合はこちら</Text>
+          <Text style={styles.linkText}>ログイン画面に戻る</Text>
         </TouchableOpacity>
       </View>
 
@@ -107,6 +116,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#666",
     marginBottom: 30,
     textAlign: "center",
   },
@@ -148,4 +163,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LoginScreen;
+export default PasswordResetScreen;
