@@ -3,6 +3,7 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // 通知の表示方法の設定
 Notifications.setNotificationHandler({
@@ -62,6 +63,30 @@ export const registerForPushNotifications = async (): Promise<
     return token;
   } catch (error) {
     console.error("プッシュ通知の登録に失敗しました:", error);
+    return null;
+  }
+};
+
+/**
+ * プッシュ通知トークンをクリアする
+ */
+export const clearPushNotificationToken = async (): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem("expoPushToken");
+    await Notifications.setBadgeCountAsync(0);
+  } catch (error) {
+    console.error("プッシュ通知トークンのクリアに失敗しました:", error);
+  }
+};
+
+/**
+ * 現在のプッシュ通知トークンを取得する
+ */
+export const getCurrentPushToken = async (): Promise<string | null> => {
+  try {
+    return await AsyncStorage.getItem("expoPushToken");
+  } catch (error) {
+    console.error("プッシュ通知トークンの取得に失敗しました:", error);
     return null;
   }
 };
