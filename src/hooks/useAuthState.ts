@@ -198,40 +198,44 @@ export function useAuthState() {
   };
 
   // 保存されたログイン情報を使用して自動ログイン
-// autoSignIn 関数内にデバッグログを追加
-const autoSignIn = async () => {
-  try {
-    console.log("自動ログイン処理を開始します...");
-    const savedEmail = await SecureStore.getItemAsync(USER_EMAIL_KEY);
-    const savedPassword = await SecureStore.getItemAsync(USER_PASSWORD_KEY);
+  // autoSignIn 関数内にデバッグログを追加
+  const autoSignIn = async () => {
+    try {
+      console.log("自動ログイン処理を開始します...");
+      const savedEmail = await SecureStore.getItemAsync(USER_EMAIL_KEY);
+      const savedPassword = await SecureStore.getItemAsync(USER_PASSWORD_KEY);
 
-    console.log("保存された認証情報:", savedEmail ? "あり" : "なし");
+      console.log("保存された認証情報:", savedEmail ? "あり" : "なし");
 
-    if (savedEmail && savedPassword) {
-      console.log("保存されたログイン情報を使用して自動ログインを試みます...");
-      setLoading(true); // 自動ログイン中はローディング状態を維持
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        savedEmail,
-        savedPassword
-      );
-      console.log("自動ログイン成功:", userCredential.user.uid);
-      await handleSuccessfulAuth(userCredential.user.uid);
-      // ここで明示的にローディング状態を解除
-      setLoading(false);
-    } else {
-      // 保存されたログイン情報がない場合は即座に初期化完了
-      console.log("保存されたログイン情報がないため、ゲスト状態で初期化します");
+      if (savedEmail && savedPassword) {
+        console.log(
+          "保存されたログイン情報を使用して自動ログインを試みます..."
+        );
+        setLoading(true); // 自動ログイン中はローディング状態を維持
+        const userCredential = await signInWithEmailAndPassword(
+          auth,
+          savedEmail,
+          savedPassword
+        );
+        console.log("自動ログイン成功:", userCredential.user.uid);
+        await handleSuccessfulAuth(userCredential.user.uid);
+        // ここで明示的にローディング状態を解除
+        setLoading(false);
+      } else {
+        // 保存されたログイン情報がない場合は即座に初期化完了
+        console.log(
+          "保存されたログイン情報がないため、ゲスト状態で初期化します"
+        );
+        setIsAuthInitialized(true);
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error("自動ログイン失敗:", error);
+      await saveCredentials(null, null);
       setIsAuthInitialized(true);
       setLoading(false);
     }
-  } catch (error) {
-    console.error("自動ログイン失敗:", error);
-    await saveCredentials(null, null);
-    setIsAuthInitialized(true);
-    setLoading(false);
-  }
-};
+  };
 
   // アプリ起動時の処理
   useEffect(() => {

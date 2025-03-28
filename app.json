@@ -15,10 +15,15 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pawmatching.paw",
-      "buildNumber": "9",
+      "buildNumber": "10",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": ["remote-notification"],
+        "NSAppleMusicUsageDescription": "このアプリはプッシュ通知を使用して、もふもふリクエストやメッセージをお知らせします。",
+        "NSCameraUsageDescription": "このアプリはプッシュ通知を使用して、もふもふリクエストやメッセージをお知らせします。",
+        "NSPhotoLibraryUsageDescription": "このアプリはプッシュ通知を使用して、もふもふリクエストやメッセージをお知らせします。",
+        "NSLocationWhenInUseUsageDescription": "このアプリはプッシュ通知を使用して、もふもふリクエストやメッセージをお知らせします。",
+        "NSLocationAlwaysUsageDescription": "このアプリはプッシュ通知を使用して、もふもふリクエストやメッセージをお知らせします。"
       }
     },
     "android": {
