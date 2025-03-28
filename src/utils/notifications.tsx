@@ -41,6 +41,14 @@ export const registerForPushNotifications = async (): Promise<
 > => {
   try {
     console.log("プッシュ通知の登録を開始します...");
+    console.log("デバイス情報:", {
+      isDevice: Device.isDevice,
+      platform: Platform.OS,
+      model: Device.modelName,
+      brand: Device.brand,
+      osVersion: Device.osVersion,
+      osBuildId: Device.osBuildId,
+    });
 
     if (!Device.isDevice) {
       console.warn("プッシュ通知は実機デバイスでのみ利用可能です");
@@ -61,6 +69,7 @@ export const registerForPushNotifications = async (): Promise<
           allowBadge: true,
           allowSound: true,
           allowAnnouncements: true,
+          allowCriticalAlerts: true,
         },
         android: {
           allowAlert: true,
@@ -84,8 +93,26 @@ export const registerForPushNotifications = async (): Promise<
     }
 
     console.log("Expoプッシュトークンを取得します...");
-    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId: Constants.expoConfig?.extra?.eas?.projectId,
+    });
+    console.log("取得したトークンデータ:", tokenData);
+
+    if (!tokenData?.data) {
+      console.warn("トークンデータが不正です");
+      return null;
+    }
+
+    const token = tokenData.data;
     console.log("取得したトークン:", token);
+
+    // トークンをAsyncStorageに保存
+    try {
+      await AsyncStorage.setItem("expoPushToken", token);
+      console.log("トークンをAsyncStorageに保存しました");
+    } catch (error) {
+      console.error("AsyncStorageへの保存に失敗:", error);
+    }
 
     return token;
   } catch (error) {

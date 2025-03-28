@@ -58,13 +58,13 @@ export default function SignUpScreen() {
 
       if (user) {
         // Firestoreにユーザー情報を保存
-        await setDoc(doc(db, "users", user.uid), {
+        await setDoc(doc(db, "users", user.user.uid), {
           email: email,
           name: username,
           createdAt: new Date(),
           updatedAt: new Date(),
           profileImage: "",
-          userID: user.uid,
+          userID: user.user.uid,
           isOwner: false,
         });
 
